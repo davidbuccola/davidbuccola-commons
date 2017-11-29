@@ -1,0 +1,6 @@
+rootProject.name = 'davidbuccola-commons'
+
+include 'config'
+include 'davidbuccola-commons-guice'
+include 'davidbuccola-commons-spark'
+

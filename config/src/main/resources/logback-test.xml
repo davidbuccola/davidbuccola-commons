@@ -1,0 +1,26 @@
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
+        <resetJUL>true</resetJUL>
+    </contextListener>
+
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%6r %highlight(%.-1level) %-20.-20logger{0} [%15.15thread] [%15.-15mdc{orgId}] %-15replace(%mdc{streamingChannel}){'^/[^/]*/', ''} %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="warn">
+        <appender-ref ref="stdout"/>
+    </root>
+
+    <!-- Logging for supporting libraries. -->
+    <logger name="org.eclipse.jetty" level="warn"/>
+    <logger name="org.apache.spark" level="warn"/>
+    <logger name="org.cometd" level="info"/>
+    <logger name="org.spark_project.jetty.util.component.AbstractLifeCycle" level="error"/>
+
+    <!-- Our Logging. -->
+    <logger name="net.davidbuccola.force.streaming" level="info"/>
+
+</configuration>

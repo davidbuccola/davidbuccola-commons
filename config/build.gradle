@@ -1,0 +1,6 @@
+plugins {
+    id 'java-library'
+    id 'idea'
+}
+
+description = 'David Buccola Commons - Build and Test Configuration'
