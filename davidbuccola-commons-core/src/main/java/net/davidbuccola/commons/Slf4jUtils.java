@@ -1,4 +1,4 @@
-package net.davidbuccola.force.streaming.core.util;
+package net.davidbuccola.commons;
 
 import org.slf4j.Logger;
 import org.slf4j.MDC;
@@ -10,8 +10,9 @@ import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.joining;
 
 /**
- * Utilities to help with Slf4j logging. This includes help with MDC as well as help with lazily evaluated messages.
+ * Utilities to help with logging using Slf4j. This includes help with MDC as well as help with lazily built messages.
  */
+@SuppressWarnings("unused")
 public final class Slf4jUtils {
 
     public static void error(Logger logger, Supplier<String> messageSupplier) {
@@ -75,7 +76,7 @@ public final class Slf4jUtils {
     }
 
     public static void doWithMDCContext(String extraKey1, String extraValue1, Runnable logic) {
-        Map<String, String> previousMDCContext = getCopyOfCurrentMDCContext();
+        Map<String, String> previousMDCContext = copyOfCurrentMDCContext();
         try {
             MDC.put(extraKey1, extraValue1);
 
@@ -86,7 +87,7 @@ public final class Slf4jUtils {
     }
 
     public static void doWithMDCContext(String extraKey1, String extraValue1, String extraKey2, String extraValue2, Runnable logic) {
-        Map<String, String> previousMDCContext = getCopyOfCurrentMDCContext();
+        Map<String, String> previousMDCContext = copyOfCurrentMDCContext();
         try {
             MDC.put(extraKey1, extraValue1);
             MDC.put(extraKey2, extraValue2);
@@ -96,7 +97,7 @@ public final class Slf4jUtils {
         }
     }
 
-    private static Map<String, String> getCopyOfCurrentMDCContext() {
+    private static Map<String, String> copyOfCurrentMDCContext() {
         Map<String, String> mdcContext = MDC.getCopyOfContextMap();
         return mdcContext != null ? mdcContext : emptyMap();
     }
