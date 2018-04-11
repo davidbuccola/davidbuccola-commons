@@ -1,20 +1,25 @@
 package net.davidbuccola.commons.guice;
 
 import com.google.common.collect.MapMaker;
+import com.google.inject.Injector;
+import com.google.inject.Key;
 
+import javax.inject.Inject;
+import javax.inject.Provider;
 import java.io.Serializable;
+import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
 /**
  * A holder for lazily injected value. Lazily injected means it is injected on demand (first use). This becomes
- * important in distributed processing frameworks where it is common for code to be serialized and deserialized. This
+ * important in distributed processing frameworks where it's common for code to be serialized and deserialized. This
  * holder can be used when the injected value is not serializable. The injected value is marked as transient so it is
- * not serialized. When this holder is deserialized at the destination a new instance is obtained from a {@link
- * LazyInjector}.
+ * not serialized.  A new instance is obtained from a {@link LazyInjector} when this holder is deserialized at the
+ * destination.
  */
-public class LazyInjection<T> implements Serializable {
+public final class LazyInjection<T> implements Serializable, Provider<T> {
     private static final long serialVersionUID = 4066410296176198636L;
 
     /**
@@ -30,24 +35,45 @@ public class LazyInjection<T> implements Serializable {
      */
     private final UUID uuid = UUID.randomUUID();
 
-    private final LazyInjector injector;
-    private final Class<T> type;
+    private final Injector injector;
+    private Type type;
     private volatile transient T value;
 
-    public LazyInjection(LazyInjector injector, Class<T> type) {
+    @Inject
+    public LazyInjection(LazyInjector injector) {
         this.injector = injector;
-        this.type = type;
     }
 
+    @Override
     @SuppressWarnings("unchecked")
     public T get() {
         if (value == null) {
+            if (type == null) {
+                throw new IllegalStateException(
+                    "Value type hasn't been set. This LazyInjection probably wasn't instantiated using a LazyInjector");
+            }
+
             synchronized (this) {
                 if (value == null) {
-                    value = (T) values.computeIfAbsent(uuid, key -> injector.getInstance(type));
+                    value = (T) values.computeIfAbsent(uuid, key -> injector.getInstance(Key.get(type)));
                 }
             }
         }
         return value;
+    }
+
+    /**
+     * Indicates whether a value has been injected yet. (Used for unit tests).
+     */
+    boolean isInjected() {
+        return value != null;
+    }
+
+    /**
+     * Sets the value type. This is used in conjunction with {@link LazyInjector} to make lazy injection work with
+     * generics.
+     */
+    void setType(Type type) {
+        this.type = type;
     }
 }

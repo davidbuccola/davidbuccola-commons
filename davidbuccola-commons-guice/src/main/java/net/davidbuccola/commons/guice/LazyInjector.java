@@ -2,7 +2,12 @@ package net.davidbuccola.commons.guice;
 
 import com.google.common.collect.MapMaker;
 import com.google.inject.*;
+import com.google.inject.internal.MoreTypes;
+import com.google.inject.matcher.Matchers;
+import com.google.inject.spi.InjectionListener;
 import com.google.inject.spi.TypeConverterBinding;
+import com.google.inject.spi.TypeEncounter;
+import com.google.inject.spi.TypeListener;
 
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
@@ -155,6 +160,21 @@ public abstract class LazyInjector implements Injector, Serializable {
     private class LazyInjectorModule implements Module {
         @Override
         public void configure(Binder binder) {
+            binder.bindListener(Matchers.any(), new TypeListener() {
+                @Override
+                public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
+                    encounter.register(new InjectionListener<I>() {
+                        @Override
+                        @SuppressWarnings("unchecked")
+                        public void afterInjection(I injectee) {
+                            if (injectee instanceof LazyInjection) {
+                                ((LazyInjection) injectee).setType(
+                                    ((MoreTypes.ParameterizedTypeImpl) type.getType()).getActualTypeArguments()[0]);
+                            }
+                        }
+                    });
+                }
+            });
         }
 
         @Provides

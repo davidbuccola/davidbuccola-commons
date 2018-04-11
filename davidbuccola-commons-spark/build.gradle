@@ -14,6 +14,7 @@ dependencies {
     api "org.apache.spark:spark-streaming_${sparkScalaBinaryVersion}:${sparkVersion}"
 
     implementation "com.google.guava:guava:${guavaVersion}"
+    implementation "com.google.inject:guice:${guiceVersion}"
     implementation "org.scala-lang.modules:scala-java8-compat_${sparkScalaBinaryVersion}:0.8.0"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 
