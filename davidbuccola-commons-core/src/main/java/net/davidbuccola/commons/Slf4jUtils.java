@@ -10,10 +10,13 @@ import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.joining;
 
 /**
- * Utilities to help with logging using Slf4j. This includes help with MDC as well as help with lazily built messages.
+ * Utilities to help with SLF4J logging. This includes help with MDC as well as help with lazily built messages.
  */
-@SuppressWarnings("unused")
 public final class Slf4jUtils {
+
+    private Slf4jUtils() {
+        throw new UnsupportedOperationException("Can't be instantiated");
+    }
 
     public static void error(Logger logger, Supplier<String> messageSupplier) {
         if (logger.isErrorEnabled()) {
@@ -105,8 +108,8 @@ public final class Slf4jUtils {
     private static String buildMessageWithData(String baseMessage, Supplier<Map<String, Object>> dataSupplier) {
         try {
             String dataPart = dataSupplier.get().entrySet().stream()
-                    .map(entry -> entry.getKey() + "=" + String.valueOf(entry.getValue()))
-                    .collect(joining(", "));
+                .map(entry -> entry.getKey() + "=" + String.valueOf(entry.getValue()))
+                .collect(joining(", "));
 
             return baseMessage + ", " + dataPart;
 
