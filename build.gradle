@@ -173,9 +173,7 @@ allprojects {
     }
 }
 
-task wrapper(type: Wrapper) {
-    description = 'Generates gradlew[.bat] scripts'
-
-    gradleVersion = '4.3.1'
-    distributionUrl = "https://services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
+wrapper {
+    gradleVersion '4.8'
+    distributionType 'ALL'
 }

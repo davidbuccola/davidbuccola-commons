@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.MDC;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.function.Supplier;
 
 import static java.util.Collections.emptyMap;
@@ -78,23 +79,58 @@ public final class Slf4jUtils {
         }
     }
 
-    public static void doWithMDCContext(String extraKey1, String extraValue1, Runnable logic) {
+    public static void error(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+        if (logger.isErrorEnabled()) {
+            logger.error(buildMessageWithData(baseMessage, dataSupplier), e);
+        }
+    }
+
+    public static void warn(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+        if (logger.isWarnEnabled()) {
+            logger.warn(buildMessageWithData(baseMessage, dataSupplier), e);
+        }
+    }
+
+    public static void info(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+        if (logger.isInfoEnabled()) {
+            logger.info(buildMessageWithData(baseMessage, dataSupplier), e);
+        }
+    }
+
+    public static void debug(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+        if (logger.isDebugEnabled()) {
+            logger.debug(buildMessageWithData(baseMessage, dataSupplier), e);
+        }
+    }
+
+    public static void trace(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+        if (logger.isTraceEnabled()) {
+            logger.trace(buildMessageWithData(baseMessage, dataSupplier), e);
+        }
+    }
+
+    public static void doWithMDCContext(String key, String value, Runnable logic) {
         Map<String, String> previousMDCContext = copyOfCurrentMDCContext();
         try {
-            MDC.put(extraKey1, extraValue1);
-
+            MDC.put(key, value);
             logic.run();
         } finally {
             MDC.setContextMap(previousMDCContext);
         }
     }
 
-    public static void doWithMDCContext(String extraKey1, String extraValue1, String extraKey2, String extraValue2, Runnable logic) {
+    public static <T> T doWithMDCContext(String key, String value, Callable<T> logic) {
         Map<String, String> previousMDCContext = copyOfCurrentMDCContext();
         try {
-            MDC.put(extraKey1, extraValue1);
-            MDC.put(extraKey2, extraValue2);
-            logic.run();
+            MDC.put(key, value);
+            return logic.call();
+
+        } catch (RuntimeException e) {
+            throw e;
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+
         } finally {
             MDC.setContextMap(previousMDCContext);
         }
