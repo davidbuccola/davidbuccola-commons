@@ -19,7 +19,7 @@ import java.nio.charset.Charset;
 /**
  * A {@link Provider} of a configuration objects initialized by {@link StringConfigModule}.
  */
-public class StringConfigProvider<T> implements Provider<T> {
+class StringConfigProvider<T> implements Provider<T> {
 
     private final String configString;
     private final ConfigurationFactory<?> configurationFactory;

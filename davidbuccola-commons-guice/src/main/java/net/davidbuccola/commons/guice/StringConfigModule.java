@@ -25,7 +25,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * {@link File}. This implementation accepts input from a {@link String} in order to support serialization in
  * distributed processing frameworks.
  */
-public abstract class StringConfigModule extends AbstractModule {
+abstract class StringConfigModule extends AbstractModule {
     private final String configString;
     private final Class<?> configClass;
     private final String propertyPrefix;

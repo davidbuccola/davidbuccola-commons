@@ -13,14 +13,14 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * A holder for lazily injected value. Lazily injected means it is injected on demand (first use). This becomes
+ * A holder for a lazily injected value. Lazily injected means it is injected on demand (first use). This becomes
  * important in distributed processing frameworks where it's common for code to be serialized and deserialized. This
  * holder can be used when the injected value is not serializable. The injected value is marked as transient so it is
  * not serialized.  A new instance is obtained from a {@link LazyInjector} when this holder is deserialized at the
  * destination.
  */
 public final class LazyInjection<T> implements Serializable, Provider<T> {
-    private static final long serialVersionUID = 4066410296176198636L;
+    private static final long serialVersionUID = -738998312511020129L;
 
     /**
      * A cache of injections that have already been resolved so the injection is shared by multiple serialized copies
@@ -50,7 +50,7 @@ public final class LazyInjection<T> implements Serializable, Provider<T> {
         if (value == null) {
             if (type == null) {
                 throw new IllegalStateException(
-                    "Value type hasn't been set. This LazyInjection probably wasn't instantiated using a LazyInjector");
+                        "Value type hasn't been set. This LazyInjection probably wasn't instantiated using a LazyInjector");
             }
 
             synchronized (this) {

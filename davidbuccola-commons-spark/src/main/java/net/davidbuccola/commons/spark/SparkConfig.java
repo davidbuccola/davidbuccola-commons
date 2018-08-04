@@ -7,7 +7,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A wrapper for {@link SparkConf} that integrates {@link SparkModule} and Guice injection.
+ * A frontend to {@link SparkConf} that that is usable with {@link org.gwizard.config}.
+ *
+ * @see SparkModule
  */
 public class SparkConfig implements Serializable {
     /**

@@ -14,14 +14,16 @@ import java.lang.annotation.Annotation;
 import java.util.*;
 
 /**
- * An abstract base class for {@link Injector} implementations that lazily configured themselves in distributed
- * processing frameworks (like Spark, Storm and Flink) where the {@link Injector} needs to be {@link Serializable}.
+ * An abstract base for an {@link Injector} that lazily configure itself in distributed processing frameworks (like
+ * Spark, Storm and Flink). The key requirement is that the {@link Injector} be {@link Serializable}.
  * <p>
- * This is a wrapper for a real {@link Injector} that is not initialized until the wrapper is serialized and
- * deserialized in it's target execution environment.
+ * This is a wrapper for a real {@link Injector} that is not initialized until the wrapper is deserialized in it's
+ * target execution environment.
+ * <p>
+ * Extending classes just need to provide a list of Guice {@link Module} by implementing {@link #getModules()}. Often
+ * this is done with an anonymous class.
  */
 public abstract class LazyInjector implements Injector, Serializable {
-    private static final long serialVersionUID = -7398125979855798901L;
 
     /**
      * A cache of Injectors that have already been created so they can be reused and shared.
@@ -163,14 +165,10 @@ public abstract class LazyInjector implements Injector, Serializable {
             binder.bindListener(Matchers.any(), new TypeListener() {
                 @Override
                 public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
-                    encounter.register(new InjectionListener<I>() {
-                        @Override
-                        @SuppressWarnings("unchecked")
-                        public void afterInjection(I injectee) {
-                            if (injectee instanceof LazyInjection) {
-                                ((LazyInjection) injectee).setType(
+                    encounter.register((InjectionListener<I>) injectee -> {
+                        if (injectee instanceof LazyInjection) {
+                            ((LazyInjection) injectee).setType(
                                     ((MoreTypes.ParameterizedTypeImpl) type.getType()).getActualTypeArguments()[0]);
-                            }
                         }
                     });
                 }

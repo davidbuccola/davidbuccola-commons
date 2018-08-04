@@ -1,7 +1,8 @@
 plugins {
     id 'idea'
+    id 'eclipse'
     id 'java-library'
-    id 'maven'
+    id 'maven-publish'
     id 'signing'
 }
 
@@ -15,7 +16,7 @@ dependencies {
 
     implementation "com.google.guava:guava:${guavaVersion}"
     implementation "com.google.inject:guice:${guiceVersion}"
-    implementation "org.scala-lang.modules:scala-java8-compat_${sparkScalaBinaryVersion}:0.8.0"
+    implementation "org.scala-lang.modules:scala-java8-compat_${sparkScalaBinaryVersion}:0.9.0"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 
     testImplementation "junit:junit:${junitVersion}"

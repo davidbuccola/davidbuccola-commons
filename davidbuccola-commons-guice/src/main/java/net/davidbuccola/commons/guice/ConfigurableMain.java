@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,8 +18,20 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * A main class which bootstraps a program with Guice and configuration from a YAML file using the facilities of {@link
- * org.gwizard.config}.
+ * A base for a main class that can be configured with Guice and configuration from a YAML file using the facilities of
+ * {@link org.gwizard.config}. An important feature of this configurable YAML support is that it is serializable and
+ * therefore usable in distributed processing frameworks like Spark.
+ * <p>
+ * The derived class provides the {@link #main(String[])} entry point and calls {@link #bootstrap(String[], Class,
+ * Class, SerializableSupplier)} to activate the configuration support contained herein. In this base class is an
+ * example {@link #main(String[])} which shows how the derived class would do this.
+ * <p>
+ * Command-line use of main classes extending from this is:
+ * <pre>
+ *     command-name --config=config-file.yml
+ * </pre>
+ * <p>
+ * The format of the YAML config file is discussed with {@link org.gwizard.config}.
  */
 public abstract class ConfigurableMain implements Runnable, Serializable {
 
@@ -45,8 +58,8 @@ public abstract class ConfigurableMain implements Runnable, Serializable {
             @Override
             protected Collection<Module> getModules() {
                 return ImmutableSet.of(
-                    new MainModule<>(configString, configClass),
-                    Modules.combine(modules.get()));
+                        new MainModule<>(configString, configClass),
+                        Modules.combine(modules.get()));
             }
         };
         injector.getInstance(mainClass).run(); // Transition to instance to get injection
@@ -77,7 +90,7 @@ public abstract class ConfigurableMain implements Runnable, Serializable {
 
         log.info("Reading configuration, configPath=" + configPath);
 
-        return new String(Files.readAllBytes(configPath), "UTF-8");
+        return new String(Files.readAllBytes(configPath), StandardCharsets.UTF_8);
     }
 
     /**

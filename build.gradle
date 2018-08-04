@@ -1,5 +1,6 @@
 plugins {
     id 'idea'
+    id 'eclipse'
 }
 
 description = 'David Buccola Commons'
@@ -12,7 +13,6 @@ configure(allprojects) {
     repositories {
         mavenLocal()
         mavenCentral()
-        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
     }
 }
 
@@ -27,6 +27,37 @@ configure(subprojects) {
 allprojects {
     afterEvaluate { memberProject ->
         configure(memberProject) {
+
+            // Configure standard publication (the common stuff). Java-specific stuff done a little later.
+            if (plugins.hasPlugin('maven-publish')) {
+                publishing {
+                    repositories {
+                        if (version.endsWith('SNAPSHOT')) {
+                            maven {
+                                name = 'central-snapshot'
+                                url = 'https://oss.sonatype.org/content/repositories/snapshots/'
+                                if (project.hasProperty('sonatype_user')) {
+                                    credentials {
+                                        username = "${sonatype_user}"
+                                        password = "${sontatype_password}"
+                                    }
+                                }
+                            }
+                        } else {
+                            maven {
+                                name = 'central-staging'
+                                url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+                                if (project.hasProperty('sonatype_user')) {
+                                    credentials {
+                                        username = "${sonatype_user}"
+                                        password = "${sontatype_password}"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // Configure for the java plugin.
 
@@ -64,77 +95,51 @@ allprojects {
                     jvmArgs '-Xmx1024m', "-Djava.library.path=${buildDir}/lib"
                 }
 
-                if (plugins.hasPlugin('findbugs')) {
-                    findbugs {
-                        toolVersion = '3.0.1'
-                        sourceSets = [sourceSets.main]
-                        excludeFilter = file("${project(':config').projectDir}/src/main/resources/findbugs-exclude.xml")
-                    }
-                }
+                if (plugins.hasPlugin('maven-publish')) {
+                    publishing {
+                        publications {
+                            mavenJava(MavenPublication) {
+                                from components.java
 
-                if (plugins.hasPlugin('signing')) {
-                    signing {
-                        required { !version.endsWith('SNAPSHOT') && gradle.taskGraph.hasTask('uploadArchives') }
-                        sign configurations.archives
-                    }
-                }
+                                artifact sourcesJar
+                                artifact javadocJar
 
-                if (plugins.hasPlugin('maven')) {
-
-                    uploadArchives {
-                        repositories {
-                            mavenDeployer {
-                                beforeDeployment {
-                                    deployment -> signing.signPom(deployment)
-                                }
-                                repository(url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-                                    if (project.hasProperty('sonatypeStagingUsername')) {
-                                        authentication(userName: sonatypeStagingUsername, password: sonatypeStagingPassword)
+                                pom {
+                                    name = project.name
+                                    description = project.description
+                                    packaging = 'jar'
+                                    url = 'https://github.com/davidbuccola/' + rootProject.name
+                                    organization {
+                                        name = 'David Buccola'
+                                        url = 'https://github.com/davidbuccola'
                                     }
-                                }
-                                snapshotRepository(url: 'https://oss.sonatype.org/content/repositories/snapshots/') {
-                                    if (project.hasProperty('sonatypeStagingUsername')) {
-                                        authentication(userName: sonatypeStagingUsername, password: sonatypeStagingPassword)
+                                    developers {
+                                        developer {
+                                            id = 'davidbuccola'
+                                            name = 'David Buccola'
+                                            email = 'david.buccola@gmail.com'
+                                        }
                                     }
+                                    scm {
+                                        url = 'git@github.com:davidbuccola/' + rootProject.name + '.git'
+                                        connection = 'scm:git:git@github.com:davidbuccola/' + rootProject.name + '.git'
+                                        developerConnection = 'scm:git:git@github.com:davidbuccola/' + rootProject.name + '.git'
+                                    }
+                                    licenses {
+                                        license {
+                                            name = 'The Apache Software License, Version 2.0'
+                                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                                            distribution = 'repo'
+                                        }
+                                    }
+//                                    //noinspection GroovyAssignabilityCheck
+//                                    parent {
+//                                        groupId 'org.sonatype.oss'
+//                                        artifactId 'oss-parent'
+//                                        version '7'
+//                                    }
                                 }
                             }
-                        }
-                    }
-
-                    // Customize the pom to meet Maven Central requirements
-                    [install.repositories.mavenInstaller, uploadArchives.repositories.mavenDeployer]*.pom*.project {
-                        name = project.name
-                        description = project.description
-                        url = "https://github.com/davidbuccola/${rootProject.name}"
-                        packaging 'jar'
-                        organization {
-                            name = 'David Buccola'
-                            url = 'https://github.com/davidbuccola'
-                        }
-                        developers {
-                            developer {
-                                id = 'davidbuccola'
-                                name = 'David Buccola'
-                                email = 'david.buccola@gmail.com'
-                            }
-                        }
-                        scm {
-                            url = "git@github.com:davidbuccola/${rootProject.name}.git"
-                            connection = "scm:git:git@github.com:davidbuccola/${rootProject.name}.git"
-                            developerConnection = "scm:git:git@github.com:davidbuccola/${rootProject.name}.git"
-                        }
-                        licenses {
-                            license {
-                                name = 'The Apache Software License, Version 2.0'
-                                url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                                distribution = 'repo'
-                            }
-                        }
-                        //noinspection GroovyAssignabilityCheck
-                        parent {
-                            groupId 'org.sonatype.oss'
-                            artifactId 'oss-parent'
-                            version '7'
                         }
                     }
                 }
@@ -174,6 +179,7 @@ allprojects {
 }
 
 wrapper {
-    gradleVersion '4.8'
+    gradleVersion '4.9'
+    //noinspection GroovyAssignabilityCheck
     distributionType 'ALL'
 }

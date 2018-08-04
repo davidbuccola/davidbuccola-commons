@@ -1,7 +1,8 @@
 plugins {
     id 'idea'
+    id 'eclipse'
     id 'java-library'
-    id 'maven'
+    id 'maven-publish'
     id 'signing'
 }
 
