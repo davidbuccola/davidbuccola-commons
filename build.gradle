@@ -39,7 +39,7 @@ allprojects {
                                 if (project.hasProperty('sonatype_user')) {
                                     credentials {
                                         username = "${sonatype_user}"
-                                        password = "${sontatype_password}"
+                                        password = "${sonatype_password}"
                                     }
                                 }
                             }
@@ -50,7 +50,7 @@ allprojects {
                                 if (project.hasProperty('sonatype_user')) {
                                     credentials {
                                         username = "${sonatype_user}"
-                                        password = "${sontatype_password}"
+                                        password = "${sonatype_password}"
                                     }
                                 }
                             }
