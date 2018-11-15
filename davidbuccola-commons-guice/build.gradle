@@ -9,12 +9,10 @@ plugins {
 description = 'David Buccola Commons - Guice'
 
 dependencies {
-
     api "com.google.inject:guice:${guiceVersion}"
 
     implementation "com.google.guava:guava:${guavaVersion}"
-    implementation "commons-cli:commons-cli:${commonsCliVersion}"
-    implementation "org.gwizard:gwizard-config:${gwizardVersion}"
+    implementation "io.dropwizard:dropwizard-configuration:${dropwizardVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 
     testImplementation "junit:junit:${junitVersion}"
@@ -23,6 +21,6 @@ dependencies {
 
     testRuntimeOnly project(':config')
     testRuntimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
-    testRuntimeOnly "org.slf4j:log4j-over-slf4j:${slf4jVersion}"
     testRuntimeOnly "org.slf4j:jcl-over-slf4j:${slf4jVersion}"
+    testRuntimeOnly "org.slf4j:log4j-over-slf4j:${slf4jVersion}"
 }

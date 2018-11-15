@@ -9,13 +9,11 @@ plugins {
 description = 'David Buccola Commons - Spark'
 
 dependencies {
-
     api "org.apache.avro:avro:${avroVersion}"
     api "org.apache.spark:spark-core_${sparkScalaBinaryVersion}:${sparkVersion}"
     api "org.apache.spark:spark-streaming_${sparkScalaBinaryVersion}:${sparkVersion}"
 
-    implementation "com.google.guava:guava:${guavaVersion}"
-    implementation "com.google.inject:guice:${guiceVersion}"
+    implementation project(':davidbuccola-commons-guice')
     implementation "org.scala-lang.modules:scala-java8-compat_${sparkScalaBinaryVersion}:0.9.0"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 
@@ -25,6 +23,6 @@ dependencies {
 
     testRuntimeOnly project(':config')
     testRuntimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
-    testRuntimeOnly "org.slf4j:log4j-over-slf4j:${slf4jVersion}"
     testRuntimeOnly "org.slf4j:jcl-over-slf4j:${slf4jVersion}"
+    testRuntimeOnly "org.slf4j:log4j-over-slf4j:${slf4jVersion}"
 }

@@ -19,7 +19,7 @@ import java.io.IOException;
  * for Spark streaming:
  * <p>
  * 1) A new {@link T} instance is created for each datum (as opposed to reusing the instance). This means the {@link T}
- * instance can be held for a while without fear of being overwritten. This ss particularly useful when sets of records
+ * instance can be held for a while without fear of being overwritten. This is particularly useful when sets of records
  * are gathered up for processing further down the Spark pipeline.
  * <p>
  * 2) The schema is obtained from the datum class rather than the Hadoop configuration.

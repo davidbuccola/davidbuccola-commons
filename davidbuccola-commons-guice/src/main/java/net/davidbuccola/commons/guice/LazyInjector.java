@@ -2,6 +2,7 @@ package net.davidbuccola.commons.guice;
 
 import com.google.common.collect.MapMaker;
 import com.google.inject.*;
+import com.google.inject.Module;
 import com.google.inject.internal.MoreTypes;
 import com.google.inject.matcher.Matchers;
 import com.google.inject.spi.InjectionListener;
@@ -14,10 +15,10 @@ import java.lang.annotation.Annotation;
 import java.util.*;
 
 /**
- * An abstract base for an {@link Injector} that lazily configure itself in distributed processing frameworks (like
+ * An abstract base for an {@link Injector} that lazily configures itself in distributed processing environments (like
  * Spark, Storm and Flink). The key requirement is that the {@link Injector} be {@link Serializable}.
  * <p>
- * This is a wrapper for a real {@link Injector} that is not initialized until the wrapper is deserialized in it's
+ * This is a wrapper for a real {@link Injector} that isn't initialized until the wrapper is deserialized in it's
  * target execution environment.
  * <p>
  * Extending classes just need to provide a list of Guice {@link Module} by implementing {@link #getModules()}. Often
@@ -168,7 +169,7 @@ public abstract class LazyInjector implements Injector, Serializable {
                     encounter.register((InjectionListener<I>) injectee -> {
                         if (injectee instanceof LazyInjection) {
                             ((LazyInjection) injectee).setType(
-                                    ((MoreTypes.ParameterizedTypeImpl) type.getType()).getActualTypeArguments()[0]);
+                                ((MoreTypes.ParameterizedTypeImpl) type.getType()).getActualTypeArguments()[0]);
                         }
                     });
                 }

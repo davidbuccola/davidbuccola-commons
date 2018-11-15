@@ -4,36 +4,33 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.dropwizard.configuration.ConfigurationException;
 import io.dropwizard.configuration.ConfigurationFactory;
 import io.dropwizard.configuration.ConfigurationSourceProvider;
-import org.gwizard.config.ConfigClass;
-import org.gwizard.config.PropertyPrefix;
+import io.dropwizard.configuration.YamlConfigurationFactory;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
-import javax.validation.Validator;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
 /**
- * A {@link Provider} of a configuration objects initialized by {@link StringConfigModule}.
+ * A {@link Provider} of a configuration objects initialized by {@link YamlConfigModule}.
  */
-class StringConfigProvider<T> implements Provider<T> {
+class YamlConfigProvider<T> implements Provider<T> {
 
     private final String configString;
     private final ConfigurationFactory<?> configurationFactory;
 
     @Inject
-    public StringConfigProvider(
-        Validator validator,
+    public YamlConfigProvider(
         ObjectMapper objectMapper,
-        @ConfigClass Class<?> configClass,
-        @PropertyPrefix String propertyPrefix,
-        @StringConfigModule.ConfigString @Nullable String configString) {
+        @YamlConfigModule.ConfigClass Class<?> configClass,
+        @YamlConfigModule.ConfigString @Nullable String configString) {
 
         this.configString = configString;
-        this.configurationFactory = new ConfigurationFactory<>(configClass, validator, objectMapper, propertyPrefix);
+        this.configurationFactory = new YamlConfigurationFactory<>(
+            configClass, null, objectMapper, "config");
     }
 
     @SuppressWarnings("unchecked")
