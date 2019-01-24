@@ -1,6 +1,5 @@
 package net.davidbuccola.commons;
 
-import io.dropwizard.configuration.ConfigurationException;
 import io.dropwizard.configuration.ConfigurationParsingException;
 import org.junit.Test;
 
@@ -9,12 +8,14 @@ import java.util.Properties;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.fail;
 
 public class ConfigUtilsTest {
 
     @Test
-    public void testProperties() throws IOException, ConfigurationException {
+    public void testProperties() throws IOException {
         Properties properties = new Properties();
         properties.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("config1.properties"));
         Config1 config = ConfigUtils.buildConfig(properties, Config1.class);
@@ -23,44 +24,56 @@ public class ConfigUtilsTest {
     }
 
     @Test
-    public void testPropertiesResource() throws IOException, ConfigurationException {
+    public void testPropertiesResource() {
         Config1 config = ConfigUtils.buildConfig("config1.properties", Config1.class);
         assertThat(config.stringValue1, is(equalTo("Foo")));
         assertThat(config.integerValue1, is(equalTo(101)));
     }
 
     @Test
-    public void testYamlResource() throws IOException, ConfigurationException {
+    public void testYamlResource() {
         Config1 config = ConfigUtils.buildConfig("config1.yaml", Config1.class);
         assertThat(config.stringValue1, is(equalTo("Foo")));
         assertThat(config.integerValue1, is(equalTo(101)));
     }
 
-    @Test(expected = ConfigurationParsingException.class)
-    public void testPropertiesWithUnknownFailure() throws IOException, ConfigurationException {
+    @Test
+    public void testPropertiesWithUnknownFailure() throws IOException {
         Properties properties = new Properties();
         properties.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("config1-with-unknown.properties"));
-        Config1 config = ConfigUtils.buildConfig(properties, Config1.class);
-        assertThat(config.stringValue1, is(equalTo("Foo")));
-        assertThat(config.integerValue1, is(equalTo(101)));
-    }
+        try {
+            ConfigUtils.buildConfig(properties, Config1.class);
+            fail("Didn't get expected exception");
 
-    @Test(expected = ConfigurationParsingException.class)
-    public void testPropertiesResourceWithUnknownFailure() throws IOException, ConfigurationException {
-        Config1 config = ConfigUtils.buildConfig("config1-with-unknown.properties", Config1.class);
-        assertThat(config.stringValue1, is(equalTo("Foo")));
-        assertThat(config.integerValue1, is(equalTo(101)));
-    }
-
-    @Test(expected = ConfigurationParsingException.class)
-    public void testYamlResourceWithUnknownFailure() throws IOException, ConfigurationException {
-        Config1 config = ConfigUtils.buildConfig("config1-with-unknown.yaml", Config1.class);
-        assertThat(config.stringValue1, is(equalTo("Foo")));
-        assertThat(config.integerValue1, is(equalTo(101)));
+        } catch (RuntimeException e) {
+            assertThat(e.getCause(), instanceOf(ConfigurationParsingException.class));
+        }
     }
 
     @Test
-    public void testPropertiesWithUnknownAllowed() throws IOException, ConfigurationException {
+    public void testPropertiesResourceWithUnknownFailure() {
+        try {
+            ConfigUtils.buildConfig("config1-with-unknown.properties", Config1.class);
+            fail("Didn't get expected exception");
+
+        } catch (RuntimeException e) {
+            assertThat(e.getCause(), instanceOf(ConfigurationParsingException.class));
+        }
+    }
+
+    @Test
+    public void testYamlResourceWithUnknownFailure() {
+        try {
+            ConfigUtils.buildConfig("config1-with-unknown.yaml", Config1.class);
+            fail("Didn't get expected exception");
+
+        } catch (RuntimeException e) {
+            assertThat(e.getCause(), instanceOf(ConfigurationParsingException.class));
+        }
+    }
+
+    @Test
+    public void testPropertiesWithUnknownAllowed() throws IOException {
         Properties properties = new Properties();
         properties.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("config1-with-unknown.properties"));
         Config1 config = ConfigUtils.buildConfig(properties, Config1.class, false);
@@ -69,21 +82,21 @@ public class ConfigUtilsTest {
     }
 
     @Test
-    public void testPropertiesResourceWithUnknownAllowed() throws IOException, ConfigurationException {
+    public void testPropertiesResourceWithUnknownAllowed() {
         Config1 config = ConfigUtils.buildConfig("config1-with-unknown.properties", Config1.class, false);
         assertThat(config.stringValue1, is(equalTo("Foo")));
         assertThat(config.integerValue1, is(equalTo(101)));
     }
 
     @Test
-    public void testYamlResourceWithUnknownAllowed() throws IOException, ConfigurationException {
+    public void testYamlResourceWithUnknownAllowed() {
         Config1 config = ConfigUtils.buildConfig("config1-with-unknown.yaml", Config1.class, false);
         assertThat(config.stringValue1, is(equalTo("Foo")));
         assertThat(config.integerValue1, is(equalTo(101)));
     }
 
     @Test
-    public void testPropertiesNesting() throws IOException, ConfigurationException {
+    public void testPropertiesNesting() throws IOException {
         Properties properties = new Properties();
         properties.load(Thread.currentThread().getContextClassLoader().getResourceAsStream("uberconfig.properties"));
         UberConfig config = ConfigUtils.buildConfig(properties, UberConfig.class);
@@ -94,7 +107,7 @@ public class ConfigUtilsTest {
     }
 
     @Test
-    public void testPropertiesResourceNesting() throws IOException, ConfigurationException {
+    public void testPropertiesResourceNesting() {
         UberConfig config = ConfigUtils.buildConfig("uberconfig.properties", UberConfig.class);
         assertThat(config.config1.stringValue1, is(equalTo("Foo")));
         assertThat(config.config1.integerValue1, is(equalTo(101)));
@@ -103,7 +116,7 @@ public class ConfigUtilsTest {
     }
 
     @Test
-    public void testYamlResourceNesting() throws IOException, ConfigurationException {
+    public void testYamlResourceNesting() {
         UberConfig config = ConfigUtils.buildConfig("uberconfig.yaml", UberConfig.class);
         assertThat(config.config1.stringValue1, is(equalTo("Foo")));
         assertThat(config.config1.integerValue1, is(equalTo(101)));
@@ -112,7 +125,28 @@ public class ConfigUtilsTest {
     }
 
     @Test
-    public void testSystemPropertyOverride() throws IOException, ConfigurationException {
+    public void testConfigArg() {
+        Config1 config = ConfigUtils.buildConfig(new String[]{"--config=config1.properties"}, Config1.class);
+        assertThat(config.stringValue1, is(equalTo("Foo")));
+        assertThat(config.integerValue1, is(equalTo(101)));
+    }
+
+    @Test
+    public void testInlinePropertyArgs() {
+        Config1 config = ConfigUtils.buildConfig(new String[]{"stringValue1=Foo", "integerValue1=101"}, Config1.class);
+        assertThat(config.stringValue1, is(equalTo("Foo")));
+        assertThat(config.integerValue1, is(equalTo(101)));
+    }
+
+    @Test
+    public void testInlinePropertyArgsIgnoresUnknown() {
+        Config1 config = ConfigUtils.buildConfig(new String[]{"stringValue1=Foo", "integerValue1=101", "unknownValue1=Nothing"}, Config1.class);
+        assertThat(config.stringValue1, is(equalTo("Foo")));
+        assertThat(config.integerValue1, is(equalTo(101)));
+    }
+
+    @Test
+    public void testSystemPropertyOverride() {
         System.setProperty("override.integerValue1", "10101");
         try {
             Config1 config = ConfigUtils.buildConfig("config1.properties", Config1.class);
@@ -124,7 +158,7 @@ public class ConfigUtilsTest {
     }
 
     @Test
-    public void testDefaultValue() throws IOException, ConfigurationException {
+    public void testDefaultValue() {
         Config1 config = ConfigUtils.buildConfig("config1-empty.properties", Config1.class);
         assertThat(config.stringValue1, is(equalTo("defaultString1")));
         assertThat(config.integerValue1, is(equalTo(1)));

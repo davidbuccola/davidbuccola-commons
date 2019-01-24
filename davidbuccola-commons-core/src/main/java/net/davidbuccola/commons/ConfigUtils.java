@@ -4,11 +4,20 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.javaprop.JavaPropsFactory;
 import io.dropwizard.configuration.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.validation.Validator;
 import java.io.*;
+import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -16,37 +25,51 @@ import java.util.Properties;
  */
 public class ConfigUtils {
 
+    private static final Logger log = LoggerFactory.getLogger(ConfigUtils.class);
+
     private ConfigUtils() {
         throw new UnsupportedOperationException("Can't be instantiated");
     }
 
-    public static <T> T buildConfig(Properties properties, Class<T> configClass) throws IOException, ConfigurationException {
+    public static <T> T buildConfig(String[] args, Class<T> configClass) {
+        return buildConfig(args, configClass, true);
+    }
+
+    public static <T> T buildConfig(String[] args, Class<T> configClass, boolean failOnUnknownProperties) {
+        return getConfigPath(args)
+            .map(path -> buildConfig(path, configClass, failOnUnknownProperties))
+            .orElseGet(() -> getInlineProperties(args)
+                .map(properties -> buildConfig(properties, configClass, false))
+                .orElseThrow(() -> new RuntimeException("Missing configuration, add \"--config=<path>\"")));
+    }
+
+    public static <T> T buildConfig(String path, Class<T> configClass) {
+        return buildConfig(path, configClass, true);
+    }
+
+    public static <T> T buildConfig(String path, Class<T> configClass, boolean failOnUnknownProperties) {
+        return buildConfig(path, configClass, failOnUnknownProperties, ConfigUtils::getConfigInputStream);
+    }
+
+    public static <T> T buildConfig(Properties properties, Class<T> configClass) {
         return buildConfig(properties, configClass, true);
     }
 
-    public static <T> T buildConfig(Properties properties, Class<T> configClass, boolean failOnUnknownProperties) throws IOException, ConfigurationException {
-        return buildConfig(new PropertiesConfigurationSourceProvider(properties), "properties", configClass, failOnUnknownProperties);
+    public static <T> T buildConfig(Properties properties, Class<T> configClass, boolean failOnUnknownProperties) {
+        return buildConfig("properties", configClass, failOnUnknownProperties, path -> {
+            StringWriter temp = new StringWriter();
+            properties.store(temp, path);
+            return new ByteArrayInputStream(temp.toString().getBytes(Charset.forName("UTF-8")));
+        });
     }
 
-    public static <T> T buildConfig(String resource, Class<T> configClass) throws IOException, ConfigurationException {
-        return buildConfig(resource, configClass, true);
-    }
-
-    public static <T> T buildConfig(String resource, Class<T> configClass, boolean failOnUnknownProperties) throws IOException, ConfigurationException {
-        return buildConfig(new ResourceConfigurationSourceProvider(), resource, configClass, failOnUnknownProperties);
-    }
-
-    public static <T> T buildConfig(File file, Class<T> configClass) throws IOException, ConfigurationException {
-        return buildConfig(file, configClass, true);
-    }
-
-    public static <T> T buildConfig(File file, Class<T> configClass, boolean failOnUnknownProperties) throws IOException, ConfigurationException {
-        return buildConfig(new FileConfigurationSourceProvider(), file.getAbsolutePath(), configClass, failOnUnknownProperties);
-    }
-
-    private static <T> T buildConfig(ConfigurationSourceProvider source, String path, Class<T> configClass, boolean failOnUnknownProperties) throws IOException, ConfigurationException {
-        String format = path.substring(path.lastIndexOf('.') + 1);
-        return getConfigurationFactory(format, configClass, failOnUnknownProperties).build(source, path);
+    private static <T> T buildConfig(String path, Class<T> configClass, boolean failOnUnknownProperties, ConfigurationSourceProvider source) {
+        try {
+            String format = path.substring(path.lastIndexOf('.') + 1);
+            return getConfigurationFactory(format, configClass, failOnUnknownProperties).build(source, path);
+        } catch (IOException | ConfigurationException e) {
+            throw new RuntimeException(e); // Convert to runtime to pass through lambdas
+        }
     }
 
     private static <T> ConfigurationFactory<T> getConfigurationFactory(String format, Class<T> configClass, boolean failOnUnknownProperties) {
@@ -72,23 +95,54 @@ public class ConfigUtils {
         }
     }
 
-    /**
-     * An implementation of {@link ConfigurationSourceProvider} that reads the configuration from {@link Properties}
-     */
-    private static class PropertiesConfigurationSourceProvider implements ConfigurationSourceProvider {
+    private static Optional<String> getConfigPath(String[] args) {
+        Iterator<String> argCursor = Arrays.asList(args).iterator();
+        while (argCursor.hasNext()) {
+            String arg = argCursor.next();
+            if (arg.startsWith("--config")) {
+                String[] pieces = arg.split("=");
+                if (pieces.length > 1) {
+                    return Optional.of(pieces[1]);
+                } else {
+                    if (argCursor.hasNext()) {
+                        String value = argCursor.next();
+                        if (!value.startsWith("-")) {
+                            return Optional.of(value);
+                        }
+                    }
+                }
+            }
+        }
+        return Optional.empty();
+    }
 
-        private final Properties properties;
+    private static Optional<Properties> getInlineProperties(String[] args) {
+        Properties properties = new Properties();
+        for (String arg: args) {
+            if (arg.length() > 0 && !arg.startsWith("-") && arg.contains("=")) {
+                String[] pieces = arg.split("=");
+                properties.put(pieces[0], pieces[1]);
+            }
+        }
+        return properties.size() > 0 ? Optional.of(properties) : Optional.empty();
+    }
 
-        PropertiesConfigurationSourceProvider(Properties properties) {
-            this.properties = properties;
+    private static InputStream getConfigInputStream(String path) throws IOException {
+        Path filePath = Paths.get(path);
+        if (Files.isRegularFile(filePath)) {
+            log.info("Reading configuration from local file: " + filePath.toAbsolutePath());
+
+            return Files.newInputStream(filePath);
         }
 
-        @Override
-        public InputStream open(String path) throws IOException {
-            StringWriter temp = new StringWriter();
-            properties.store(temp, path);
-            return new ByteArrayInputStream(temp.toString().getBytes(Charset.forName("UTF-8")));
+        URL url = Thread.currentThread().getContextClassLoader().getResource(path);
+        if (url != null) {
+            log.info("Reading configuration from resource: " + url);
+
+            return url.openStream();
         }
+
+        throw new FileNotFoundException("Failed to find configuration file: " + path);
     }
 
     /**
