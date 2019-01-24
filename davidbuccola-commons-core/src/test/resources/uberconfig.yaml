@@ -1,0 +1,7 @@
+config1:
+  stringValue1: Foo
+  integerValue1: 101
+
+config2:
+  stringValue2: Bar
+  integerValue2: 202

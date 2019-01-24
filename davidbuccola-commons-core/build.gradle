@@ -1,16 +1,17 @@
 plugins {
-    id 'idea'
-    id 'eclipse'
     id 'java-library'
     id 'maven-publish'
     id 'signing'
+    id 'idea'
 }
 
 description = 'David Buccola Commons - Core'
 
 dependencies {
-    api "com.google.guava:guava:${guavaVersion}"
     api "org.slf4j:slf4j-api:${slf4jVersion}"
+
+    implementation "io.dropwizard:dropwizard-configuration:${dropwizardVersion}"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${jacksonVersion}"
 
     testImplementation "junit:junit:${junitVersion}"
     testImplementation "org.hamcrest:hamcrest-core:${hamcrestVersion}"

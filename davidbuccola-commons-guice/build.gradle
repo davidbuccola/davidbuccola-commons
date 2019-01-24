@@ -1,9 +1,8 @@
 plugins {
-    id 'idea'
-    id 'eclipse'
     id 'java-library'
     id 'maven-publish'
     id 'signing'
+    id 'idea'
 }
 
 description = 'David Buccola Commons - Guice'
@@ -11,8 +10,6 @@ description = 'David Buccola Commons - Guice'
 dependencies {
     api "com.google.inject:guice:${guiceVersion}"
 
-    implementation "com.google.guava:guava:${guavaVersion}"
-    implementation "io.dropwizard:dropwizard-configuration:${dropwizardVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 
     testImplementation "junit:junit:${junitVersion}"

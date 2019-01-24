@@ -4,6 +4,3 @@ include 'config'
 include 'davidbuccola-commons-core'
 include 'davidbuccola-commons-guice'
 include 'davidbuccola-commons-spark'
-
-enableFeaturePreview('STABLE_PUBLISHING')
-
