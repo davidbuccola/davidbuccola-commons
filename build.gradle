@@ -6,7 +6,7 @@ description = 'David Buccola Commons'
 
 configure(allprojects) {
 
-    version = '1.4'
+    version = '1.5-SNAPSHOT'
     group = "net.davidbuccola.${rootProject.name}"
 
     repositories {
