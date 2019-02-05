@@ -3,16 +3,17 @@ package net.davidbuccola.commons.guice;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
-import com.google.inject.Module;
 import com.google.inject.Provides;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.inject.Inject;
-import java.util.Collection;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class LazyInjectionTest {
 
@@ -20,27 +21,23 @@ public class LazyInjectionTest {
 
     @Before
     public void setUp() {
-        injector = new LazyInjector() {
-            protected Collection<Module> getModules() {
-                return ImmutableSet.of(new AbstractModule() {
-                    private Integer testInteger = 0;
+        injector = new LazyInjector(() -> ImmutableSet.of(new AbstractModule() {
+            private Integer testInteger = 0;
 
-                    @Override
-                    protected void configure() {
-                    }
-
-                    @Provides
-                    public Integer getTestInteger() {
-                        return testInteger++;
-                    }
-
-                    @Provides
-                    String getTestString() {
-                        return String.valueOf(getTestInteger());
-                    }
-                });
+            @Override
+            protected void configure() {
             }
-        };
+
+            @Provides
+            public Integer getTestInteger() {
+                return testInteger++;
+            }
+
+            @Provides
+            String getTestString() {
+                return String.valueOf(getTestInteger());
+            }
+        }));
     }
 
     @Test

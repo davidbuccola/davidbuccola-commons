@@ -2,7 +2,6 @@ package net.davidbuccola.commons.guice;
 
 import com.google.common.collect.MapMaker;
 import com.google.inject.*;
-import com.google.inject.Module;
 import com.google.inject.internal.MoreTypes;
 import com.google.inject.matcher.Matchers;
 import com.google.inject.spi.InjectionListener;
@@ -15,19 +14,17 @@ import java.lang.annotation.Annotation;
 import java.util.*;
 
 /**
- * An abstract base for an {@link Injector} that lazily configures itself in distributed processing environments (like
- * Spark, Storm and Flink). The key requirement is that the {@link Injector} be {@link Serializable}.
+ * An {@link Injector} that lazily configures itself in distributed processing environments (like Spark, Storm and
+ * Flink). The key requirement is that the {@link Injector} be {@link Serializable}.
  * <p>
- * This is a wrapper for a real {@link Injector} that isn't initialized until the wrapper is deserialized in it's
- * target execution environment.
- * <p>
- * Extending classes just need to provide a list of Guice {@link Module} by implementing {@link #getModules()}. Often
- * this is done with an anonymous class.
+ * This is a wrapper for a real {@link Injector} that isn't initialized until the wrapper is deserialized in it's target
+ * execution environment.
  */
-public abstract class LazyInjector implements Injector, Serializable {
+public final class LazyInjector implements Injector, Serializable {
 
     /**
-     * A cache of Injectors that have already been created so they can be reused and shared.
+     * A cache of injections that have already been resolved so the injection is shared by multiple serialized copies
+     * originating from the same {@link LazyInjection}.
      */
     private static final transient Map<UUID, Injector> injectors = Collections.synchronizedMap(new MapMaker().weakValues().makeMap());
 
@@ -38,13 +35,13 @@ public abstract class LazyInjector implements Injector, Serializable {
      */
     private final UUID uuid = UUID.randomUUID();
 
+    private final SerializableSupplier<Collection<Module>> moduleSupplier;
+
     private volatile transient Injector injector;
 
-    /**
-     * Returns a list of {@link Module} to be used for initializing the {@link Injector}. It is called later in the
-     * cycle once the {@link LazyInjector} is in its target execution environment.
-     */
-    protected abstract Collection<Module> getModules();
+    public LazyInjector(SerializableSupplier<Collection<Module>> moduleSupplier) {
+        this.moduleSupplier = moduleSupplier;
+    }
 
     @Override
     public final void injectMembers(Object instance) {
@@ -150,7 +147,7 @@ public abstract class LazyInjector implements Injector, Serializable {
             synchronized (this) {
                 if (injector == null) {
                     injector = injectors.computeIfAbsent(uuid, key -> {
-                        List<Module> modules = new ArrayList<>(getModules());
+                        List<Module> modules = new ArrayList<>(moduleSupplier.get());
                         modules.add(new LazyInjectorModule());
                         return Guice.createInjector(modules);
                     });
