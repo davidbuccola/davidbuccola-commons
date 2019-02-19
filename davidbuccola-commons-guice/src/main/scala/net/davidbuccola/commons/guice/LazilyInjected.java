@@ -19,12 +19,12 @@ import java.util.UUID;
  * not serialized.  A new instance is obtained from a {@link LazyInjector} when this holder is deserialized at the
  * destination.
  */
-public final class LazyInjection<T> implements Serializable, Provider<T> {
-    private static final long serialVersionUID = -738998312511020129L;
+public final class LazilyInjected<T> implements Serializable, Provider<T> {
+    private static final long serialVersionUID = 6933121173898057587L;
 
     /**
      * A cache of injections that have already been resolved so the injection is shared by multiple serialized copies
-     * originating from the same {@link LazyInjection}.
+     * originating from the same {@link LazilyInjected}.
      */
     private static final transient Map<UUID, Object> values = Collections.synchronizedMap(new MapMaker().weakValues().makeMap());
 
@@ -40,7 +40,7 @@ public final class LazyInjection<T> implements Serializable, Provider<T> {
     private volatile transient T value;
 
     @Inject
-    public LazyInjection(LazyInjector injector) {
+    public LazilyInjected(LazyInjector injector) {
         this.injector = injector;
     }
 
@@ -50,7 +50,7 @@ public final class LazyInjection<T> implements Serializable, Provider<T> {
         if (value == null) {
             if (type == null) {
                 throw new IllegalStateException(
-                        "Value type hasn't been set. This LazyInjection probably wasn't instantiated using a LazyInjector");
+                    "Value type hasn't been set. This LazilyInjected probably wasn't instantiated using a LazyInjector");
             }
 
             synchronized (this) {

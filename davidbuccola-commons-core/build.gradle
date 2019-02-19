@@ -8,10 +8,9 @@ plugins {
 description = 'David Buccola Commons - Core'
 
 dependencies {
-    api "org.slf4j:slf4j-api:${slf4jVersion}"
-
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${jackson2Version}"
     implementation "io.dropwizard:dropwizard-configuration:${dropwizardVersion}"
-    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${jacksonVersion}"
+    implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 
     testImplementation "junit:junit:${junitVersion}"
     testImplementation "org.hamcrest:hamcrest-core:${hamcrestVersion}"

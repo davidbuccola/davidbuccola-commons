@@ -4,186 +4,27 @@ plugins {
 
 description = 'David Buccola Commons'
 
-configure(allprojects) {
+version = '1.5-SNAPSHOT'
+group = "net.davidbuccola.${rootProject.name}"
 
-    version = '1.5-SNAPSHOT'
-    group = "net.davidbuccola.${rootProject.name}"
-
-    repositories {
-        mavenCentral()
-    }
+// Symbolic versions for select dependencies (usually ones that have multiple artifacts or that show up often)
+ext {
+    avroVersion = '1.8.2'
+    dropwizardVersion = '1.3.7'
+    guiceVersion = '4.0'
+    hamcrestVersion = '1.3'
+    jackson2Version = '2.9.6'
+    junitVersion = '4.12'
+    logbackVersion = '1.2.3'
+    slf4jVersion = '1.7.25'
+    scalaBinaryVersion = '2.11'
+    scalaLibraryVersion = '2.11.12'
+    sparkVersion = '2.4.0'
 }
 
-configure(rootProject) {
-    ext.gitHash = 'git log -1 --format=%H'.execute().text.trim()
-}
-
-configure(subprojects) {
-    ext.gitHash = rootProject.gitHash  // Copy from the root so we don't execute git command multiple times
-}
-
-allprojects {
-    afterEvaluate { memberProject ->
-        configure(memberProject) {
-
-            // Configure standard publication (the common stuff). Java-specific stuff done a little later.
-            if (plugins.hasPlugin('maven-publish')) {
-                publishing {
-                    repositories {
-                        if (version.endsWith('SNAPSHOT')) {
-                            maven {
-                                name = 'central-snapshot'
-                                url = 'https://oss.sonatype.org/content/repositories/snapshots/'
-                                if (project.hasProperty('sonatype_user')) {
-                                    credentials {
-                                        username = "${sonatype_user}"
-                                        password = "${sonatype_password}"
-                                    }
-                                }
-                            }
-                        } else {
-                            maven {
-                                name = 'central-staging'
-                                url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-                                if (project.hasProperty('sonatype_user')) {
-                                    credentials {
-                                        username = "${sonatype_user}"
-                                        password = "${sonatype_password}"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Configure for the java plugin.
-
-            if (plugins.hasPlugin('java') || plugins.hasPlugin('java-library')) {
-
-                sourceCompatibility = 1.8
-                targetCompatibility = 1.8
-
-                task('sourcesJar', type: Jar, dependsOn: classes) {
-                    classifier = 'sources'
-                    from sourceSets.main.allJava.srcDirs
-                }
-
-                task('javadocJar', type: Jar) {
-                    classifier = 'javadoc'
-                    from javadoc.destinationDir
-                }
-
-                artifacts {
-                    archives sourcesJar
-                    archives javadocJar
-                }
-
-                tasks.withType(JavaCompile) {
-                    options.debug = true
-                    options.encoding = 'UTF-8'
-                }
-
-                tasks.withType(Jar) {
-                    manifest {
-                        attributes(
-                                'Implementation-Title': project.description,
-                                'Implementation-Version': project.version,
-                                'Implementation-Vendor': project.group,
-                                'Source-Revision': gitHash
-                        )
-                    }
-                }
-
-                tasks.withType(Test) {
-                    jvmArgs '-Xmx1024m', "-Djava.library.path=${buildDir}/lib"
-                }
-
-                if (plugins.hasPlugin('maven-publish')) {
-                    publishing {
-                        publications {
-                            mavenJava(MavenPublication) {
-                                from components.java
-
-                                artifact sourcesJar
-                                artifact javadocJar
-
-                                pom {
-                                    name = project.name
-                                    description = project.description
-                                    packaging = 'jar'
-                                    url = 'https://github.com/davidbuccola/' + rootProject.name
-                                    organization {
-                                        name = 'David Buccola'
-                                        url = 'https://github.com/davidbuccola'
-                                    }
-                                    developers {
-                                        developer {
-                                            id = 'davidbuccola'
-                                            name = 'David Buccola'
-                                            email = 'david.buccola@gmail.com'
-                                        }
-                                    }
-                                    scm {
-                                        url = 'git@github.com:davidbuccola/' + rootProject.name + '.git'
-                                        connection = 'scm:git:git@github.com:davidbuccola/' + rootProject.name + '.git'
-                                        developerConnection = 'scm:git:git@github.com:davidbuccola/' + rootProject.name + '.git'
-                                    }
-                                    licenses {
-                                        license {
-                                            name = 'The Apache Software License, Version 2.0'
-                                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                                            distribution = 'repo'
-                                        }
-                                    }
-//                                    //noinspection GroovyAssignabilityCheck
-//                                    parent {
-//                                        groupId 'org.sonatype.oss'
-//                                        artifactId 'oss-parent'
-//                                        version '7'
-//                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Input libraries shouldn't define concrete log bindings. Leave that to the application.
-                configurations.findAll { !it.name.endsWith('Classpath') }.each { configuration ->
-                    configuration.dependencies.each {
-                        it.exclude group: 'org.slf4j', module: 'log4j-over-slf4j'
-                        it.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
-                        it.exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
-                        it.exclude group: 'ch.qos.logback', module: 'logback-classic'
-                    }
-                }
-
-                // Make sure compile-only dependencies are NOT transitive. When they're transitive you can compile
-                // against an unexpected version of a transitive dependency.
-                configurations.findAll { it.name.equals('compileOnly') }.each { configuration ->
-                    configuration.dependencies.each {
-                        it.transitive = false
-                    }
-                }
-            }
-
-            // Configure for idea plugin for javadoc and source download.
-            if (plugins.hasPlugin('idea')) {
-                idea {
-                    module {
-                        downloadJavadoc = true
-                        downloadSources = true
-                        outputDir = file('build/classes/main')
-                        testOutputDir = file('build/classes/test')
-                    }
-                }
-            }
-        }
-    }
-}
+apply from: 'common.gradle'
 
 wrapper {
-    gradleVersion '5.1.1'
-    //noinspection GroovyAssignabilityCheck
-    distributionType 'ALL'
+    gradleVersion '5.2.1'
+    distributionType Wrapper.DistributionType.ALL
 }

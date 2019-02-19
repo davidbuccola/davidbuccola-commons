@@ -1,0 +1,203 @@
+configure(rootProject) {
+    ext.gitHash = 'git log -1 --format=%H'.execute().text.trim()
+}
+
+subprojects {
+    version = rootProject.version
+    group = rootProject.group
+    ext.gitHash = rootProject.gitHash
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+
+    afterEvaluate { memberProject ->
+        configure(memberProject) {
+
+            // Configure Java and/or Scala.
+            if (plugins.hasPlugin('java') || plugins.hasPlugin('java-library') || plugins.hasPlugin('scala')) {
+
+                sourceCompatibility = 1.8
+                targetCompatibility = 1.8
+
+                task('sourcesJar', type: Jar, dependsOn: classes) {
+                    //noinspection GroovyAccessibility, GroovyAssignabilityCheck
+                    archiveClassifier = 'sources'
+                    if (sourceSets.main.hasProperty('allJava')) from sourceSets.main.allJava.srcDirs
+                    if (sourceSets.main.hasProperty('allScala')) from sourceSets.main.allScala.srcDirs
+                }
+
+                task('javadocJar', type: Jar) {
+                    //noinspection GroovyAccessibility, GroovyAssignabilityCheck
+                    archiveClassifier = 'javadoc'
+                    if (tasks.hasProperty('javadoc')) from javadoc.destinationDir
+                    if (tasks.hasProperty('scaladoc')) from scaladoc.destinationDir
+                }
+
+                artifacts {
+                    archives sourcesJar
+                    archives javadocJar
+                }
+
+                tasks.withType(JavaCompile) {
+                    options.debug = true
+                    options.encoding = 'UTF-8'
+                }
+
+                tasks.withType(Jar) {
+                    manifest {
+                        attributes(
+                                'Implementation-Title': project.description,
+                                'Implementation-Version': project.version,
+                                'Implementation-Vendor': project.group,
+                                'Source-Revision': gitHash
+                        )
+                    }
+                }
+
+                tasks.withType(Test) {
+                    jvmArgs '-Xmx1024m', "-Djava.library.path=${buildDir}/lib"
+                }
+
+                // Input libraries shouldn't define concrete log bindings. Leave that to the application.
+                configurations.findAll { !it.name.endsWith('Classpath') }.each { configuration ->
+                    configuration.dependencies.each { dependency ->
+                        if (dependency.getClass().getSimpleName().contains("ExternalModuleDependency")) {
+                            dependency.exclude group: 'org.slf4j', module: 'log4j-over-slf4j'
+                            dependency.exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+                            dependency.exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
+                            dependency.exclude group: 'ch.qos.logback', module: 'logback-classic'
+                        }
+                    }
+                }
+
+                // Make sure compile-only dependencies are NOT transitive. When they're transitive you can compile against
+                // an unexpected version of a transitive dependency.
+                configurations.findAll { (it.name == 'compileOnly') }.each { configuration ->
+                    configuration.dependencies.each {
+                        it.transitive = false
+                    }
+                }
+
+                // Configure Idea for javadoc and source download.
+                if (plugins.hasPlugin('idea')) {
+                    idea {
+                        module {
+                            downloadJavadoc = true
+                            downloadSources = true
+                            inheritOutputDirs = false
+
+                            // Match the newer gradle conventions
+                            if (sourceSets.main.hasProperty('allScala')) {
+                                outputDir = file("$buildDir/classes/scala/main")
+                                testOutputDir = file("$buildDir/classes/scala/test")
+
+                            } else if (sourceSets.main.hasProperty('allJava')) {
+                                outputDir = file("$buildDir/classes/java/main")
+                                testOutputDir = file("$buildDir/classes/java/test")
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Configure standard publication.
+            if (plugins.hasPlugin('maven-publish')) {
+                publishing {
+                    repositories {
+                        if (version.endsWith('SNAPSHOT')) {
+                            maven {
+                                name = 'central-snapshot'
+                                url = 'https://oss.sonatype.org/content/repositories/snapshots/'
+                                if (project.hasProperty('sonatype_user')) {
+                                    credentials {
+                                        username = "${sonatype_user}"
+                                        password = "${sonatype_password}"
+                                    }
+                                }
+                            }
+                        } else {
+                            maven {
+                                name = 'central-staging'
+                                url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+                                if (project.hasProperty('sonatype_user')) {
+                                    credentials {
+                                        username = "${sonatype_user}"
+                                        password = "${sonatype_password}"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (sourceSets.main.allJava) {
+                        publications {
+                            mavenJava(MavenPublication) {
+                                from components.java
+
+                                artifact sourcesJar
+                                artifact javadocJar
+
+                                pom {
+                                    name = project.name
+                                    description = project.description
+                                    packaging = 'jar'
+                                    url = 'https://github.com/davidbuccola/' + rootProject.name
+                                    organization {
+                                        name = 'David Buccola'
+                                        url = 'https://github.com/davidbuccola'
+                                    }
+                                    developers {
+                                        developer {
+                                            id = 'davidbuccola'
+                                            name = 'David Buccola'
+                                            email = 'david.buccola@gmail.com'
+                                        }
+                                    }
+                                    scm {
+                                        url = 'git@github.com:davidbuccola/' + rootProject.name + '.git'
+                                        connection = 'scm:git:git@github.com:davidbuccola/' + rootProject.name + '.git'
+                                        developerConnection = 'scm:git:git@github.com:davidbuccola/' + rootProject.name + '.git'
+                                    }
+                                    licenses {
+                                        license {
+                                            name = 'The Apache Software License, Version 2.0'
+                                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                                            distribution = 'repo'
+                                        }
+                                    }
+//                                    //noinspection GroovyAssignabilityCheck
+//                                    parent {
+//                                        groupId 'org.sonatype.oss'
+//                                        artifactId 'oss-parent'
+//                                        version '7'
+//                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Configure Artifactory publication.
+            if (plugins.hasPlugin('com.jfrog.artifactory') && plugins.hasPlugin('maven-publish')) {
+                artifactory {
+                    contextUrl = "${artifactory_contextUrl}"
+                    publish {
+                        repository {
+                            repoKey = "libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
+                            username = artifactory_user
+                            password = artifactory_password
+                        }
+                        defaults {
+                            publications('mavenJava')
+                            publishIvy = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

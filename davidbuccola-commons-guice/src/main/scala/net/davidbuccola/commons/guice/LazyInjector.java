@@ -13,18 +13,21 @@ import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.util.*;
 
+import static com.google.common.collect.Lists.newArrayList;
+
 /**
  * An {@link Injector} that lazily configures itself in distributed processing environments (like Spark, Storm and
- * Flink). The key requirement is that the {@link Injector} be {@link Serializable}.
+ * Flink). The key requirement is that the injector be {@link Serializable}.
  * <p>
- * This is a wrapper for a real {@link Injector} that isn't initialized until the wrapper is deserialized in it's target
+ * This is a wrapper for a real injector that isn't initialized until the wrapper is deserialized in it's target
  * execution environment.
  */
+@SuppressWarnings("JavadocReference")
 public final class LazyInjector implements Injector, Serializable {
 
     /**
      * A cache of injections that have already been resolved so the injection is shared by multiple serialized copies
-     * originating from the same {@link LazyInjection}.
+     * originating from the same {@link LazilyInjected}.
      */
     private static final transient Map<UUID, Injector> injectors = Collections.synchronizedMap(new MapMaker().weakValues().makeMap());
 
@@ -39,7 +42,7 @@ public final class LazyInjector implements Injector, Serializable {
 
     private volatile transient Injector injector;
 
-    public LazyInjector(SerializableSupplier<Collection<Module>> moduleSupplier) {
+    LazyInjector(SerializableSupplier<Collection<Module>> moduleSupplier) {
         this.moduleSupplier = moduleSupplier;
     }
 
@@ -139,15 +142,14 @@ public final class LazyInjector implements Injector, Serializable {
      * Extra work is done to make things work in the face of class serialization that moves the provider instance from
      * one JVM to another. Under some serialization mechanisms a single instance of the provider on the source JVM may
      * show up as two instances on the target JVM. Though the two providers have the same values, having two of them
-     * destroys the singleton nature of the returned {@link Injector}. Logic in this class compensates for that
-     * problem.
+     * destroys the singleton nature of the returned injector. Logic in this class compensates for that problem.
      */
     private Injector getInjector() {
         if (injector == null) {
             synchronized (this) {
                 if (injector == null) {
                     injector = injectors.computeIfAbsent(uuid, key -> {
-                        List<Module> modules = new ArrayList<>(moduleSupplier.get());
+                        List<Module> modules = newArrayList(moduleSupplier.get());
                         modules.add(new LazyInjectorModule());
                         return Guice.createInjector(modules);
                     });
@@ -164,8 +166,8 @@ public final class LazyInjector implements Injector, Serializable {
                 @Override
                 public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
                     encounter.register((InjectionListener<I>) injectee -> {
-                        if (injectee instanceof LazyInjection) {
-                            ((LazyInjection) injectee).setType(
+                        if (injectee instanceof LazilyInjected) {
+                            ((LazilyInjected) injectee).setType(
                                 ((MoreTypes.ParameterizedTypeImpl) type.getType()).getActualTypeArguments()[0]);
                         }
                     });

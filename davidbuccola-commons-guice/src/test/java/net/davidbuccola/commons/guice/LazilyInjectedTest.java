@@ -15,7 +15,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class LazyInjectionTest {
+public class LazilyInjectedTest {
 
     private Injector injector;
 
@@ -57,26 +57,27 @@ public class LazyInjectionTest {
 
     private static class SimpleInjectionCase implements Runnable {
         @Inject
-        LazyInjection<SimpleBean> simpleBean;
+        LazilyInjected<SimpleBean> simpleBean;
 
         @Override
         public void run() {
-            assertThat("LazyInjection wrapper should be injected", simpleBean, is(notNullValue()));
-            assertThat("Lazily injected value inside LazyInjection wrapper should not be injected yet", not(simpleBean.isInjected()));
+            assertThat("LazilyInjected wrapper should be injected", simpleBean, is(notNullValue()));
+            assertThat("Lazily injected value inside LazilyInjected wrapper should not be injected yet", not(simpleBean.isInjected()));
 
             SimpleBean injectedValue = simpleBean.get();
             assertThat(injectedValue, is(notNullValue()));
+            assertThat(injectedValue.getValue(), is(equalTo("0")));
         }
     }
 
     private static class GenericStringInjectionCase implements Runnable {
         @Inject
-        LazyInjection<GenericBean<String>> stringBean;
+        LazilyInjected<GenericBean<String>> stringBean;
 
         @Override
         public void run() {
-            assertThat("LazyInjection wrapper should be injected", stringBean, is(notNullValue()));
-            assertThat("Lazily injected value inside LazyInjection wrapper should not be injected yet", not(stringBean.isInjected()));
+            assertThat("LazilyInjected wrapper should be injected", stringBean, is(notNullValue()));
+            assertThat("Lazily injected value inside LazilyInjected wrapper should not be injected yet", not(stringBean.isInjected()));
 
             GenericBean<String> injectedValue = stringBean.get();
             assertThat(injectedValue, is(notNullValue()));
@@ -86,12 +87,12 @@ public class LazyInjectionTest {
 
     private static class GenericIntegerInjectionCase implements Runnable {
         @Inject
-        LazyInjection<GenericBean<Integer>> integerBean;
+        LazilyInjected<GenericBean<Integer>> integerBean;
 
         @Override
         public void run() {
-            assertThat("LazyInjection wrapper should be injected", integerBean, is(notNullValue()));
-            assertThat("Lazily injected value inside LazyInjection wrapper should not be injected yet", not(integerBean.isInjected()));
+            assertThat("LazilyInjected wrapper should be injected", integerBean, is(notNullValue()));
+            assertThat("Lazily injected value inside LazilyInjected wrapper should not be injected yet", not(integerBean.isInjected()));
 
             GenericBean<Integer> injectedValue = integerBean.get();
             assertThat(injectedValue, is(notNullValue()));
@@ -107,7 +108,7 @@ public class LazyInjectionTest {
             this.value = value;
         }
 
-        public String getValue() {
+        String getValue() {
             return value;
         }
     }
@@ -120,7 +121,7 @@ public class LazyInjectionTest {
             this.value = value;
         }
 
-        public T getValue() {
+        T getValue() {
             return value;
         }
     }
