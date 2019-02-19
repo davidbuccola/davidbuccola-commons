@@ -4,9 +4,10 @@ import com.google.common.collect.Iterators;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
+import org.apache.spark.streaming.StreamingContext;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaPairInputDStream;
-import org.apache.spark.streaming.api.java.JavaStreamingContext;
+import org.apache.spark.streaming.dstream.DStream;
 import org.apache.spark.streaming.dstream.FileInputDStream;
 import org.apache.spark.util.LongAccumulator;
 import scala.Option;
@@ -28,17 +29,25 @@ import java.util.Iterator;
  * the number of files (which is not particularly useful). With the hacks here, the record count is set to the number of
  * AVRO records.
  */
-public final class AvroFileInputDStreamFactory {
+public final class AvroFileDStreamFactory {
 
     /**
      * Creates a {@link JavaDStream} of AVRO records from files in a monitored directory.
      */
-    public static <T extends SpecificRecord> JavaDStream<T> avroFileInputDStream(JavaStreamingContext context, Path directory, Class<T> datumClass, Class<? extends AvroFileInputFormat<T>> formatClass) {
-        return avroFileInputDStream(context, directory, datumClass, formatClass, null);
+    public static <T extends SpecificRecord> DStream<T> avroFileDStream(StreamingContext ssc, Path directory, Class<T> datumClass, Class<? extends AvroFileInputFormat<T>> formatClass) {
+        return avroFileJavaDStream(ssc, directory, datumClass, formatClass).dstream();
     }
 
-    public static <T extends SpecificRecord> JavaDStream<T> avroFileInputDStream(JavaStreamingContext context, Path directory, Class<T> datumClass, Class<? extends AvroFileInputFormat<T>> formatClass, Configuration hadoopConfig) {
-        CountedFileInputDStream<T> fileStream = new CountedFileInputDStream<>(context, directory, datumClass, formatClass, true, Option.apply(hadoopConfig));
+    public static <T extends SpecificRecord> DStream<T> avroFileDStream(StreamingContext ssc, Path directory, Class<T> datumClass, Class<? extends AvroFileInputFormat<T>> formatClass, Configuration hadoopConfig) {
+        return avroFileJavaDStream(ssc, directory, datumClass, formatClass, hadoopConfig).dstream();
+    }
+
+    public static <T extends SpecificRecord> JavaDStream<T> avroFileJavaDStream(StreamingContext ssc, Path directory, Class<T> datumClass, Class<? extends AvroFileInputFormat<T>> formatClass) {
+        return avroFileJavaDStream(ssc, directory, datumClass, formatClass, null);
+    }
+
+    public static <T extends SpecificRecord> JavaDStream<T> avroFileJavaDStream(StreamingContext ssc, Path directory, Class<T> datumClass, Class<? extends AvroFileInputFormat<T>> formatClass, Configuration hadoopConfig) {
+        CountedFileInputDStream<T> fileStream = new CountedFileInputDStream<>(ssc, directory, datumClass, formatClass, true, Option.apply(hadoopConfig));
         JavaPairInputDStream<T, NullWritable> pairStream = JavaPairInputDStream.fromInputDStream(
             fileStream, ClassTag$.MODULE$.apply(datumClass), ClassTag$.MODULE$.apply(NullWritable.class));
 
@@ -49,7 +58,7 @@ public final class AvroFileInputDStreamFactory {
         }));
     }
 
-    private AvroFileInputDStreamFactory() {
+    private AvroFileDStreamFactory() {
     }
 
     /**

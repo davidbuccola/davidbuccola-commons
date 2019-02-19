@@ -6,7 +6,6 @@ import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.streaming.StreamingContext;
 import org.apache.spark.streaming.Time;
-import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.dstream.FileInputDStream;
 import org.apache.spark.streaming.scheduler.InputInfoTracker;
 import org.apache.spark.streaming.scheduler.StreamInputInfo;
@@ -31,8 +30,8 @@ class CountedFileInputDStream<T> extends FileInputDStream<T, NullWritable, Input
 
     private final int recordStreamId;
 
-    CountedFileInputDStream(JavaStreamingContext context, Path directory, Class<T> recordClass, Class<? extends InputFormat<T, NullWritable>> formatClass, boolean newFilesOnly, Option<Configuration> configuration) {
-        super(context.ssc(),
+    CountedFileInputDStream(StreamingContext ssc, Path directory, Class<T> recordClass, Class<? extends InputFormat<T, NullWritable>> formatClass, boolean newFilesOnly, Option<Configuration> configuration) {
+        super(ssc,
             directory.toAbsolutePath().toString(),
             func(FileInputDStream::defaultFilter),
             newFilesOnly,
@@ -41,7 +40,7 @@ class CountedFileInputDStream<T> extends FileInputDStream<T, NullWritable, Input
             ClassTag$.MODULE$.apply(NullWritable.class),
             ClassTag$.MODULE$.apply(formatClass));
 
-        recordStreamId = context.ssc().getNewInputStreamId();
+        recordStreamId = ssc.getNewInputStreamId();
     }
 
     @Override

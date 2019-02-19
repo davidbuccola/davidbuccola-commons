@@ -23,7 +23,8 @@ import java.util.Properties;
 /**
  * Utilities for loading configuration files and binding them to configuration objects.
  */
-public class ConfigUtils {
+@SuppressWarnings("WeakerAccess")
+public final class ConfigUtils {
 
     private static final Logger log = LoggerFactory.getLogger(ConfigUtils.class);
 
@@ -40,7 +41,7 @@ public class ConfigUtils {
             .map(path -> buildConfig(path, configClass, failOnUnknownProperties))
             .orElseGet(() -> getInlineProperties(args)
                 .map(properties -> buildConfig(properties, configClass, false))
-                .orElseThrow(() -> new RuntimeException("Missing configuration, add \"--config=<path>\"")));
+                .orElseThrow(() -> new RuntimeException("Missing configuration, try adding \"--config=<path>\"")));
     }
 
     public static <T> T buildConfig(String path, Class<T> configClass) {
