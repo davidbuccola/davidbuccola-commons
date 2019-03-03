@@ -39,7 +39,7 @@ public final class ConfigUtils {
     public static <T> T buildConfig(String[] args, Class<T> configClass, boolean failOnUnknownProperties) {
         return getConfigPath(args)
             .map(path -> buildConfig(path, configClass, failOnUnknownProperties))
-            .orElseGet(() -> getInlineProperties(args)
+            .orElseGet(() -> getArgProperties(args)
                 .map(properties -> buildConfig(properties, configClass, false))
                 .orElseThrow(() -> new RuntimeException("Missing configuration, try adding \"--config=<path>\"")));
     }
@@ -117,12 +117,12 @@ public final class ConfigUtils {
         return Optional.empty();
     }
 
-    private static Optional<Properties> getInlineProperties(String[] args) {
+    private static Optional<Properties> getArgProperties(String[] args) {
         Properties properties = new Properties();
-        for (String arg: args) {
+        for (String arg : args) {
             if (arg.length() > 0 && !arg.startsWith("-") && arg.contains("=")) {
-                String[] pieces = arg.split("=");
-                properties.put(pieces[0], pieces[1]);
+                int equalOffset = arg.indexOf('=');
+                properties.put(arg.substring(0, equalOffset), arg.substring(equalOffset + 1));
             }
         }
         return properties.size() > 0 ? Optional.of(properties) : Optional.empty();
