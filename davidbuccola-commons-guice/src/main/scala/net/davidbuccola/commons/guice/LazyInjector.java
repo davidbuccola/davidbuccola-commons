@@ -1,6 +1,7 @@
 package net.davidbuccola.commons.guice;
 
 import com.google.common.collect.MapMaker;
+import com.google.inject.Module;
 import com.google.inject.*;
 import com.google.inject.internal.MoreTypes;
 import com.google.inject.matcher.Matchers;
@@ -22,7 +23,6 @@ import static com.google.common.collect.Lists.newArrayList;
  * This is a wrapper for a real injector that isn't initialized until the wrapper is deserialized in it's target
  * execution environment.
  */
-@SuppressWarnings("JavadocReference")
 public final class LazyInjector implements Injector, Serializable {
 
     /**
