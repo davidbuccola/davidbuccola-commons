@@ -1,2 +1,5 @@
 stringValue1: Foo
 integerValue1: 101
+listValue1:
+  - 10101
+  - 1010101

@@ -1,7 +1,13 @@
 config1:
   stringValue1: Foo
   integerValue1: 101
+  listValue1:
+    - 10101
+    - 1010101
 
 config2:
   stringValue2: Bar
   integerValue2: 202
+  listValue2:
+    - 20202
+    - 2020202
