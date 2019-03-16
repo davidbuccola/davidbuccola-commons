@@ -30,8 +30,8 @@ public class PropertiesUtils {
     /**
      * Get properties from a file or resource.
      */
-    public static Optional<Map<String, Object>> getProperties(String path) {
-        Optional<Map<String, Object>> properties = loadProperties(path).map(PropertiesUtils::toPropertyMap);
+    public static Optional<Map<String, String>> getProperties(String path) {
+        Optional<Map<String, String>> properties = loadProperties(path).map(PropertiesUtils::toPropertyMap);
         if (properties.isPresent()) {
             debug(log, "Read properties from " + path, properties::get);
         }
@@ -41,15 +41,15 @@ public class PropertiesUtils {
     /**
      * Get properties from the command line. Arguments of the form 'key=value' are considered properties.
      */
-    public static Optional<Map<String, Object>> getProperties(String[] args) {
-        ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.builder();
+    public static Optional<Map<String, String>> getProperties(String[] args) {
+        ImmutableMap.Builder<String, String> mapBuilder = ImmutableMap.builder();
         for (String arg : args) {
             if (arg.length() > 0 && !arg.startsWith("-") && arg.contains("=")) {
                 int equalOffset = arg.indexOf('=');
                 mapBuilder.put(arg.substring(0, equalOffset), arg.substring(equalOffset + 1));
             }
         }
-        Map<String, Object> properties = mapBuilder.build();
+        Map<String, String> properties = mapBuilder.build();
 
         if (properties.size() > 0) {
             debug(log, "Extracted properties from command args", () -> properties);
@@ -65,9 +65,9 @@ public class PropertiesUtils {
      * Gets a merged set of properties from a property file and the command line. Properties specified on the command
      * line override values specified in the file.
      */
-    public static Optional<Map<String, Object>> getProperties(String path, String[] args) {
+    public static Optional<Map<String, String>> getProperties(String path, String[] args) {
         return getProperties(path)
-            .map(propertiesFromFile -> ImmutableMap.<String, Object>builder()
+            .map(propertiesFromFile -> ImmutableMap.<String, String>builder()
                 .putAll(propertiesFromFile)
                 .putAll(getProperties(args).orElseGet(Collections::emptyMap))
                 .build());
@@ -95,9 +95,9 @@ public class PropertiesUtils {
         }
     }
 
-    private static Map<String, Object> toPropertyMap(Properties properties) {
-        ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.builder();
-        properties.forEach((key, value) -> mapBuilder.put(key.toString(), value));
+    private static Map<String, String> toPropertyMap(Properties properties) {
+        ImmutableMap.Builder<String, String> mapBuilder = ImmutableMap.builder();
+        properties.forEach((key, value) -> mapBuilder.put(key.toString(), value.toString()));
         return mapBuilder.build();
     }
 }

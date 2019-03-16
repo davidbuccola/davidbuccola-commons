@@ -19,6 +19,7 @@ import static net.davidbuccola.commons.PropertiesUtils.getProperties;
 /**
  * Utilities for loading configuration files and binding them to configuration objects.
  */
+@SuppressWarnings("WeakerAccess")
 public final class ConfigUtils {
 
     private ConfigUtils() {
@@ -27,29 +28,29 @@ public final class ConfigUtils {
 
     public static <T> Optional<T> getConfig(String path, Class<T> configClass) {
         return getProperties(path)
-            .map(properties -> buildConfig(properties, configClass, path));
+            .map(properties -> buildConfig(properties, configClass));
     }
 
     public static <T> Optional<T> getConfig(String[] args, Class<T> configClass) {
         return getProperties(args)
-            .map(properties -> buildConfig(properties, configClass, "args"));
+            .map(properties -> buildConfig(properties, configClass));
     }
 
     public static <T> Optional<T> getConfig(String path, String[] args, Class<T> configClass) {
         return getProperties(path, args)
-            .map(properties -> buildConfig(properties, configClass, path));
+            .map(properties -> buildConfig(properties, configClass));
     }
 
-    private static <T> T buildConfig(Map<String, Object> properties, Class<T> configClass, String path) {
+    public static <T> T buildConfig(Map<String, ?> properties, Class<T> configClass) {
         try {
-            return getConfigurationFactory(configClass).build(toConfigurationSourceProvider(properties), path);
+            return getConfigurationFactory(configClass).build(toConfigurationSourceProvider(properties), "properties");
 
         } catch (IOException | ConfigurationException e) {
             throw new RuntimeException(e); // Lambdas don't like checked exceptions
         }
     }
 
-    private static ConfigurationSourceProvider toConfigurationSourceProvider(Map<String, Object> properties) {
+    private static ConfigurationSourceProvider toConfigurationSourceProvider(Map<String, ?> properties) {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             Properties javaUtilProperties = new Properties();

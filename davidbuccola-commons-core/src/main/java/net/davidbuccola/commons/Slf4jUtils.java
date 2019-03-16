@@ -50,61 +50,61 @@ public final class Slf4jUtils {
         }
     }
 
-    public static void error(Logger logger, String baseMessage, Supplier<Map<String, Object>> dataSupplier) {
+    public static void error(Logger logger, String baseMessage, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isErrorEnabled()) {
             logger.error(buildMessageWithData(baseMessage, dataSupplier));
         }
     }
 
-    public static void warn(Logger logger, String baseMessage, Supplier<Map<String, Object>> dataSupplier) {
+    public static void warn(Logger logger, String baseMessage, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isWarnEnabled()) {
             logger.warn(buildMessageWithData(baseMessage, dataSupplier));
         }
     }
 
-    public static void info(Logger logger, String baseMessage, Supplier<Map<String, Object>> dataSupplier) {
+    public static void info(Logger logger, String baseMessage, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isInfoEnabled()) {
             logger.info(buildMessageWithData(baseMessage, dataSupplier));
         }
     }
 
-    public static void debug(Logger logger, String baseMessage, Supplier<Map<String, Object>> dataSupplier) {
+    public static void debug(Logger logger, String baseMessage, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isDebugEnabled()) {
             logger.debug(buildMessageWithData(baseMessage, dataSupplier));
         }
     }
 
-    public static void trace(Logger logger, String baseMessage, Supplier<Map<String, Object>> dataSupplier) {
+    public static void trace(Logger logger, String baseMessage, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isTraceEnabled()) {
             logger.trace(buildMessageWithData(baseMessage, dataSupplier));
         }
     }
 
-    public static void error(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+    public static void error(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isErrorEnabled()) {
             logger.error(buildMessageWithData(baseMessage, dataSupplier), e);
         }
     }
 
-    public static void warn(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+    public static void warn(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isWarnEnabled()) {
             logger.warn(buildMessageWithData(baseMessage, dataSupplier), e);
         }
     }
 
-    public static void info(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+    public static void info(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isInfoEnabled()) {
             logger.info(buildMessageWithData(baseMessage, dataSupplier), e);
         }
     }
 
-    public static void debug(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+    public static void debug(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isDebugEnabled()) {
             logger.debug(buildMessageWithData(baseMessage, dataSupplier), e);
         }
     }
 
-    public static void trace(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, Object>> dataSupplier) {
+    public static void trace(Logger logger, String baseMessage, Throwable e, Supplier<Map<String, ?>> dataSupplier) {
         if (logger.isTraceEnabled()) {
             logger.trace(buildMessageWithData(baseMessage, dataSupplier), e);
         }
@@ -191,10 +191,10 @@ public final class Slf4jUtils {
         }
     }
 
-    public static String buildMessageWithData(String baseMessage, Supplier<Map<String, Object>> dataSupplier) {
+    public static String buildMessageWithData(String baseMessage, Supplier<Map<String, ?>> dataSupplier) {
         try {
             String dataPart = dataSupplier.get().entrySet().stream()
-                .map(entry -> entry.getKey() + "=" + String.valueOf(entry.getValue()))
+                .map(entry -> entry.getKey() + "=" + entry.getValue())
                 .collect(joining(", "));
 
             return baseMessage + ", " + dataPart;
