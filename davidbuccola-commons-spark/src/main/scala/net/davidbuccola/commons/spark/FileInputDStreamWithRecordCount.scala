@@ -28,7 +28,7 @@ class FileInputDStreamWithRecordCount[K: ClassTag, V: ClassTag, F <: InputFormat
     def aggregateCount(): Long = counters.foldLeft[Long](0) { (accumulator, counter) => accumulator + counter.count }
 
     // Report stream input info that includes the record count
-    reportInputInfo(new StreamInputInfoWithFutureRecordCount(id, aggregateCount), validTime)
+    reportInputInfo(new StreamInputInfoWithFutureRecordCount(getNewInputStreamId, aggregateCount), validTime)
 
     // Return a mapped RDD that accumulates the record count as we go.
     super.compute(validTime).map(rdd =>

@@ -26,11 +26,12 @@ public abstract class FileInputDStreamExtensionHack<K, V, F extends InputFormat<
         super(ssc, directory, func(filter::apply), newFilesOnly, configuration, keyTag, valueTag, inputFormatTag);
     }
 
-    /**
-     * Reports {@link StreamInputInfo}
-     */
     protected final void reportInputInfo(StreamInputInfo inputInfo, Time validTime) {
         getInputInfoTracker().reportInfo(validTime, inputInfo);
+    }
+
+    protected final int getNewInputStreamId() {
+        return ssc().getNewInputStreamId();
     }
 
     private static InputInfoTracker getInputInfoTracker() {
