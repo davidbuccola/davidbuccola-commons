@@ -1,0 +1,15 @@
+plugins {
+    id 'idea'
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+}
+
+description = 'David Buccola Commons - Spark Hacks'
+
+dependencies {
+    api "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
+    api "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
+
+    implementation "org.scala-lang.modules:scala-java8-compat_${scalaBinaryVersion}:0.9.0"
+}
