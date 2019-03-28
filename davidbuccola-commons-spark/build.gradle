@@ -15,7 +15,6 @@ dependencies {
     api "org.apache.hadoop:hadoop-common:2.7.2"
     api "org.apache.hadoop:hadoop-mapreduce-client-core:2.7.2"
 
-    implementation project(":davidbuccola-commons-spark-hacks")
     implementation "org.scala-lang.modules:scala-java8-compat_${scalaBinaryVersion}:0.9.0"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 
