@@ -61,6 +61,7 @@ public final class ForceRestClient {
 
     private static final String REST_API_VERSION = "47.0";
     private static final int DEFAULT_CONCURRENCY = 1;
+    private static final int DEFAULT_BATCH_SIZE = 200;
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(ForceRestClient.class);
@@ -215,6 +216,10 @@ public final class ForceRestClient {
             }
         });
         return futureResult;
+    }
+
+    public CompletableFuture<List<UpsertResult>> upsert(List<SObject> records) {
+        return upsert(records, DEFAULT_BATCH_SIZE);
     }
 
     public CompletableFuture<List<UpsertResult>> upsert(List<SObject> records, int batchSize) {
