@@ -2,5 +2,6 @@ rootProject.name = 'davidbuccola-commons'
 
 include 'config'
 include 'davidbuccola-commons-core'
+include 'davidbuccola-commons-force'
 include 'davidbuccola-commons-guice'
 include 'davidbuccola-commons-spark'

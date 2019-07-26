@@ -25,6 +25,8 @@ import static com.google.common.collect.Lists.newArrayList;
  */
 public final class LazyInjector implements Injector, Serializable {
 
+    private static final long serialVersionUID = -492287354346653996L;
+
     /**
      * A cache of injections that have already been resolved so the injection is shared by multiple serialized copies
      * originating from the same {@link LazilyInjected}.
