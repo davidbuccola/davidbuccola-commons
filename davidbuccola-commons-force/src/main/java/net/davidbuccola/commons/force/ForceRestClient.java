@@ -49,12 +49,13 @@ import static java.util.stream.StreamSupport.stream;
 import static net.davidbuccola.commons.FutureUtils.forAllOf;
 
 
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"WeakerAccess", "unused"})
 public final class ForceRestClient {
 
-    private static final String DEFAULT_API_VERSION = "47.0";
-    private static final int DEFAULT_CONCURRENCY = 1;
-    private static final int DEFAULT_BATCH_SIZE = 200;
+    public static final String DEFAULT_API_VERSION = "47.0";
+    public static final int DEFAULT_CONCURRENCY = 1;
+    public static final int DEFAULT_BATCH_SIZE = 200;
+
     private static final int IDLE_TIMEOUT = 120 * 1000; // Longer for because user creation can take a while
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -279,7 +280,7 @@ public final class ForceRestClient {
 
                 @Override
                 public void onFailure(Response response, Throwable failure) {
-                    log.debug("Create failed", failure);
+                    log.debug("Upsert failed before getting started", failure);
 
                     rightToPerformSObjectOperation.release();
                     futureResult.completeExceptionally(failure);
@@ -404,7 +405,7 @@ public final class ForceRestClient {
 
     private static String buildCompositeSObjectsBody(List<SObject> sObjects) {
         ObjectNode body = JsonNodeFactory.instance.objectNode();
-        body.put("allOrNone", true);
+        body.put("allOrNone", false);
         body.set("records", toJsonObjects(sObjects));
         return body.toString();
     }
