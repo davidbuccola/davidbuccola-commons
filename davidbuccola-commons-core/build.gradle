@@ -8,6 +8,7 @@ plugins {
 description = 'David Buccola Commons - Core'
 
 dependencies {
+    implementation 'commons-cli:commons-cli:1.4'
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${jackson2Version}"
     implementation "io.dropwizard:dropwizard-configuration:${dropwizardVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"

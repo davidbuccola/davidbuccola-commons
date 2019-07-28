@@ -15,14 +15,8 @@ import com.salesforce.streaming.core.auth.Authentication;
 import com.salesforce.streaming.core.auth.Authenticator;
 import com.salesforce.streaming.core.auth.BasicAuthenticator;
 import com.salesforce.streaming.core.auth.BasicIdentity;
-import com.sforce.soap.partner.IError;
-import com.sforce.soap.partner.QueryResult;
-import com.sforce.soap.partner.StatusCode;
-import com.sforce.soap.partner.UpsertResult;
+import com.sforce.soap.partner.*;
 import com.sforce.soap.partner.sobject.SObject;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpRequestException;
 import org.eclipse.jetty.client.api.Request;
@@ -50,7 +44,6 @@ import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.Lists.partition;
 import static com.salesforce.streaming.core.util.Slf4jUtils.debug;
 import static com.salesforce.streaming.core.util.Slf4jUtils.error;
-import static java.lang.Integer.parseInt;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
 import static net.davidbuccola.commons.FutureUtils.forAllOf;
@@ -59,9 +52,10 @@ import static net.davidbuccola.commons.FutureUtils.forAllOf;
 @SuppressWarnings("WeakerAccess")
 public final class ForceRestClient {
 
-    private static final String REST_API_VERSION = "47.0";
+    private static final String DEFAULT_API_VERSION = "47.0";
     private static final int DEFAULT_CONCURRENCY = 1;
     private static final int DEFAULT_BATCH_SIZE = 200;
+    private static final int IDLE_TIMEOUT = 120 * 1000; // Longer for because user creation can take a while
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(ForceRestClient.class);
@@ -75,37 +69,27 @@ public final class ForceRestClient {
 
     private Authentication authentication;
 
-    public ForceRestClient(CommandLine command) {
-        this(
-            command.getOptionValue("server", "http://localhost:6109"),
-            command.getOptionValue("username"),
-            command.getOptionValue("password"),
-            parseInt(command.getOptionValue("concurrency", Integer.toString(DEFAULT_CONCURRENCY))));
+    public ForceRestClient(String server, String username, String password) {
+        this(server, username, password, DEFAULT_CONCURRENCY);
     }
 
     public ForceRestClient(String server, String username, String password, int concurrency) {
+        this(server, username, password, concurrency, DEFAULT_API_VERSION);
+    }
+
+    public ForceRestClient(String server, String username, String password, int concurrency, String apiVersion) {
         this.server = server;
         this.username = username;
         this.password = password;
 
         rightToPerformSObjectOperation = new Semaphore(concurrency);
 
-        HttpClientFactory httpClientFactory = new BasicHttpClientFactory();
+        HttpClientFactory httpClientFactory = new BasicHttpClientFactory().setIdleTimeout(IDLE_TIMEOUT);
         httpClient = httpClientFactory.getHttpClient();
         authenticator = new BasicAuthenticator()
-            .withApiVersion(REST_API_VERSION)
+            .withApiVersion(apiVersion)
             .withHttpClientFactory(httpClientFactory)
             .withServerUrl(server);
-    }
-
-    public static Options getOptions() {
-        Options options = new Options();
-        options.addOption(Option.builder().longOpt("server").hasArg().argName("url").desc("Core login URL").build());
-        options.addOption(Option.builder().longOpt("username").hasArg().argName("username").desc("Username").required().build());
-        options.addOption(Option.builder().longOpt("password").hasArg().argName("password").desc("Password").required().build());
-        options.addOption(Option.builder().longOpt("concurrency").hasArg().argName("number").desc("Maximum number of concurrent sobject operations").build());
-
-        return options;
     }
 
     public Authentication getAuthentication() {
@@ -142,7 +126,7 @@ public final class ForceRestClient {
             public void onSuccess(Response response) {
                 try {
                     if (HttpStatus.isSuccess(response.getStatus())) {
-                        QueryResult result = toQueryResult(parseJson(getContentAsString()));
+                        QueryResult result = buildQueryResult(parseJson(getContentAsString()));
 
                         debug(log, "Query succeeded", () -> ImmutableMap.of(
                             "soql", soql,
@@ -186,7 +170,7 @@ public final class ForceRestClient {
             public void onSuccess(Response response) {
                 try {
                     if (HttpStatus.isSuccess(response.getStatus())) {
-                        QueryResult result = toQueryResult(parseJson(getContentAsString()));
+                        QueryResult result = buildQueryResult(parseJson(getContentAsString()));
 
                         debug(log, "Query succeeded", () -> ImmutableMap.of(
                             "queryLocator", queryLocator,
@@ -244,7 +228,7 @@ public final class ForceRestClient {
                     try {
                         if (HttpStatus.isSuccess(response.getStatus())) {
                             AtomicInteger numberOfSuccesses = new AtomicInteger(0);
-                            List<UpsertResult> results = toUpsertResults(parseJson(getContentAsString()));
+                            List<UpsertResult> results = buildUpsertResults(parseJson(getContentAsString()));
                             Multimap<String, UpsertResult> resultsByErrorMessage = HashMultimap.create();
                             for (int i = 0, limit = records.size(); i < limit; i++) {
                                 UpsertResult result = results.get(i);
@@ -254,13 +238,16 @@ public final class ForceRestClient {
                                         records.get(i).setId(result.getId());
                                     }
                                 } else {
-                                    StringBuilder errorMessage = new StringBuilder();
+                                    StringBuilder message = new StringBuilder();
                                     for (IError error : result.getErrors()) {
-                                        errorMessage.append(String.format(
-                                            "%n  message=%s, statusCode=%s, fields=%s",
+                                        if (message.length() > 0) {
+                                            message.append("\n");
+                                        }
+                                        message.append(String.format(
+                                            "%s, statusCode=%s, fields=%s",
                                             error.getMessage(), error.getStatusCode(), Arrays.toString(error.getFields())));
                                     }
-                                    resultsByErrorMessage.put(errorMessage.toString(), result);
+                                    resultsByErrorMessage.put(message.toString(), result);
                                 }
                             }
                             if (numberOfSuccesses.get() > 0) {
@@ -311,6 +298,50 @@ public final class ForceRestClient {
         }
     }
 
+    public CompletableFuture<DescribeSObjectResult> describeSObject(String entityName) {
+        CompletableFuture<DescribeSObjectResult> futureResult = new CompletableFuture<>();
+        Request request = httpClient.newRequest(buildDescribeURI(getAuthentication(), entityName))
+            .accept("application/json")
+            .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken());
+
+        long beginMillis = System.currentTimeMillis();
+        request.send(new BufferingResponseListener() {
+            @Override
+            public void onSuccess(Response response) {
+                try {
+                    if (HttpStatus.isSuccess(response.getStatus())) {
+                        DescribeSObjectResult result = buildDescribeSObjectResult(parseJson(getContentAsString()));
+
+                        debug(log, "Describe succeeded", () -> ImmutableMap.of(
+                            "entityName", entityName,
+                            "elapsedMillis", System.currentTimeMillis() - beginMillis));
+
+                        futureResult.complete(result);
+                    } else {
+                        throw new HttpRequestException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), request);
+                    }
+                } catch (Exception e) {
+                    log.debug("Describe failed", e);
+
+                    futureResult.completeExceptionally(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Response response, Throwable failure) {
+                log.debug("Describe failed", failure);
+
+                futureResult.completeExceptionally(failure);
+            }
+
+            @Override
+            public void onComplete(Result result) {
+                // The necessary work is done in "onSuccess" and "onFailure".
+            }
+        });
+        return futureResult;
+    }
+
     private static URI buildQueryURI(Authentication authentication, String soql) {
         URI instanceURI = URI.create(authentication.getInstanceUrl());
         try {
@@ -322,7 +353,7 @@ public final class ForceRestClient {
                 null);
 
         } catch (URISyntaxException e) {
-            throw new IllegalStateException("This should never happen");
+            throw new IllegalStateException("This should never happen", e);
         }
     }
 
@@ -337,7 +368,7 @@ public final class ForceRestClient {
                 null);
 
         } catch (URISyntaxException e) {
-            throw new IllegalStateException("This should never happen");
+            throw new IllegalStateException("This should never happen", e);
         }
     }
 
@@ -352,7 +383,22 @@ public final class ForceRestClient {
                 null);
 
         } catch (URISyntaxException e) {
-            throw new IllegalStateException("This should never happen");
+            throw new IllegalStateException("This should never happen", e);
+        }
+    }
+
+    private static URI buildDescribeURI(Authentication authentication, String entityName) {
+        URI instanceURI = URI.create(authentication.getInstanceUrl());
+        try {
+            return new URI(
+                instanceURI.getScheme(),
+                instanceURI.getAuthority(),
+                "/services/data/v" + authentication.getApiVersion() + "/sobjects/" + entityName + "/describe",
+                null,
+                null);
+
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("This should never happen", e);
         }
     }
 
@@ -410,7 +456,7 @@ public final class ForceRestClient {
         return jsonObject;
     }
 
-    private static QueryResult toQueryResult(JsonNode resultNode) {
+    private static QueryResult buildQueryResult(JsonNode resultNode) {
         QueryResult result = new QueryResult();
         result.setDone(resultNode.get("done").asBoolean());
         result.setSize(resultNode.get("totalSize").asInt());
@@ -419,19 +465,19 @@ public final class ForceRestClient {
             String queryLocator = nextRecordsUrl.substring(nextRecordsUrl.lastIndexOf("/") + 1);
             result.setQueryLocator(queryLocator);
         }
-        result.setRecords(toSObjects(resultNode.get("records")).toArray(new SObject[0]));
+        result.setRecords(buildSObjects(resultNode.get("records")).toArray(new SObject[0]));
         return result;
     }
 
-    private static List<SObject> toSObjects(JsonNode jsonObjects) {
+    private static List<SObject> buildSObjects(JsonNode jsonObjects) {
         List<SObject> sObjects = new ArrayList<>();
         for (JsonNode sObject : jsonObjects) {
-            sObjects.add(toSObject((ObjectNode) sObject));
+            sObjects.add(buildSObject((ObjectNode) sObject));
         }
         return sObjects;
     }
 
-    private static SObject toSObject(ObjectNode jsonObject) {
+    private static SObject buildSObject(ObjectNode jsonObject) {
         SObject sObject = new SObject(jsonObject.get("attributes").get("type").asText());
         jsonObject.fields().forEachRemaining(fieldEntry -> {
             String fieldName = fieldEntry.getKey();
@@ -460,7 +506,7 @@ public final class ForceRestClient {
                         break;
 
                     case OBJECT:
-                        sObject.setSObjectField(fieldName, toSObject((ObjectNode) fieldNode));
+                        sObject.setSObjectField(fieldName, buildSObject((ObjectNode) fieldNode));
                         break;
                 }
             }
@@ -468,15 +514,15 @@ public final class ForceRestClient {
         return sObject;
     }
 
-    private static List<UpsertResult> toUpsertResults(JsonNode resultsNode) {
+    private static List<UpsertResult> buildUpsertResults(JsonNode resultsNode) {
         List<UpsertResult> results = new ArrayList<>();
         for (JsonNode resultNode : resultsNode) {
-            results.add(toUpsertResult(resultNode));
+            results.add(buildUpsertResult(resultNode));
         }
         return results;
     }
 
-    private static UpsertResult toUpsertResult(JsonNode resultNode) {
+    private static UpsertResult buildUpsertResult(JsonNode resultNode) {
         UpsertResult result = new UpsertResult();
         result.setSuccess(resultNode.has("success") && resultNode.get("success").asBoolean());
         result.setCreated(result.isSuccess());
@@ -484,20 +530,20 @@ public final class ForceRestClient {
             result.setId(resultNode.get("id").asText());
         }
         if (resultNode.has("errors")) {
-            result.setErrors(toErrors(resultNode.get("errors")).toArray(new IError[0]));
+            result.setErrors(buildErrors(resultNode.get("errors")).toArray(new IError[0]));
         }
         return result;
     }
 
-    private static List<IError> toErrors(JsonNode errorsNode) {
+    private static List<IError> buildErrors(JsonNode errorsNode) {
         List<IError> errors = new ArrayList<>();
         for (JsonNode errorNode : errorsNode) {
-            errors.add(toError(errorNode));
+            errors.add(buildError(errorNode));
         }
         return errors;
     }
 
-    private static IError toError(JsonNode errorNode) {
+    private static IError buildError(JsonNode errorNode) {
         IError error = new com.sforce.soap.partner.Error();
         error.setStatusCode(StatusCode.valueOf(errorNode.get("statusCode").asText()));
         error.setMessage(errorNode.get("message").asText());
@@ -505,6 +551,115 @@ public final class ForceRestClient {
             error.setFields(stream(errorNode.get("fields").spliterator(), false).map(JsonNode::asText).toArray(String[]::new));
         }
         return error;
+    }
+
+    private static DescribeSObjectResult buildDescribeSObjectResult(JsonNode resultNode) {
+        DescribeSObjectResult result = new DescribeSObjectResult();
+        result.setActivateable(resultNode.get("activateable").booleanValue());
+        result.setCompactLayoutable(resultNode.get("compactLayoutable").booleanValue());
+        result.setCreateable(resultNode.get("createable").booleanValue());
+        result.setCustom(resultNode.get("custom").booleanValue());
+        result.setCustomSetting(resultNode.get("customSetting").booleanValue());
+        result.setDeletable(resultNode.get("deletable").booleanValue());
+        result.setDeprecatedAndHidden(resultNode.get("deprecatedAndHidden").booleanValue());
+        result.setFeedEnabled(resultNode.get("feedEnabled").booleanValue());
+        result.setKeyPrefix(resultNode.get("keyPrefix").textValue());
+        result.setLabel(resultNode.get("label").textValue());
+        result.setLabelPlural(resultNode.get("labelPlural").textValue());
+        result.setLayoutable(resultNode.get("layoutable").booleanValue());
+        result.setMergeable(resultNode.get("mergeable").booleanValue());
+        result.setMruEnabled(resultNode.get("mruEnabled").booleanValue());
+        result.setName(resultNode.get("name").textValue());
+        result.setNetworkScopeFieldName(resultNode.get("networkScopeFieldName").textValue());
+        result.setQueryable(resultNode.get("queryable").booleanValue());
+        result.setReplicateable(resultNode.get("replicateable").booleanValue());
+        result.setRetrieveable(resultNode.get("retrieveable").booleanValue());
+        result.setSearchable(resultNode.get("searchable").booleanValue());
+        result.setSearchLayoutable(resultNode.get("searchLayoutable").booleanValue());
+        result.setTriggerable(resultNode.get("triggerable").booleanValue());
+        result.setUndeletable(resultNode.get("undeletable").booleanValue());
+        result.setUpdateable(resultNode.get("updateable").booleanValue());
+
+        result.setFields(buildFields(resultNode.get("fields")).toArray(new IField[0]));
+
+        //TODO And much, much more...
+
+        return result;
+    }
+
+    private static List<IField> buildFields(JsonNode fieldsNode) {
+        List<IField> fields = new ArrayList<>();
+        for (JsonNode fieldNode : fieldsNode) {
+            fields.add(buildField(fieldNode));
+        }
+        return fields;
+    }
+
+    private static IField buildField(JsonNode fieldNode) {
+        Field field = new Field();
+        field.setAutoNumber(fieldNode.get("autoNumber").booleanValue());
+        field.setByteLength(fieldNode.get("byteLength").intValue());
+        field.setCalculated(fieldNode.get("calculated").booleanValue());
+        field.setCaseSensitive(fieldNode.get("caseSensitive").booleanValue());
+        field.setControllerName(fieldNode.get("controllerName").textValue());
+        field.setCreateable(fieldNode.get("createable").booleanValue());
+        field.setCustom(fieldNode.get("custom").booleanValue());
+        field.setDefaultedOnCreate(fieldNode.get("defaultedOnCreate").booleanValue());
+        field.setDefaultValueFormula(fieldNode.get("defaultValueFormula").textValue());
+        field.setDependentPicklist(fieldNode.get("dependentPicklist").booleanValue());
+        field.setDeprecatedAndHidden(fieldNode.get("deprecatedAndHidden").booleanValue());
+        field.setDigits(fieldNode.get("digits").intValue());
+        field.setDisplayLocationInDecimal(fieldNode.get("displayLocationInDecimal").booleanValue());
+        field.setEncrypted(fieldNode.get("encrypted").booleanValue());
+        field.setExtraTypeInfo(fieldNode.get("extraTypeInfo").textValue());
+        field.setFilterable(fieldNode.get("filterable").booleanValue());
+        field.setGroupable(fieldNode.get("groupable").booleanValue());
+        field.setIdLookup(fieldNode.get("idLookup").booleanValue());
+        field.setInlineHelpText(fieldNode.get("inlineHelpText").textValue());
+        field.setLabel(fieldNode.get("label").textValue());
+        field.setLength(fieldNode.get("length").intValue());
+        field.setName(fieldNode.get("name").textValue());
+        field.setNameField(fieldNode.get("nameField").booleanValue());
+        field.setNamePointing(fieldNode.get("namePointing").booleanValue());
+        field.setNillable(fieldNode.get("nillable").booleanValue());
+        field.setPermissionable(fieldNode.get("permissionable").booleanValue());
+        field.setPicklistValues(buildPicklistEntries(fieldNode.get("picklistValues")).toArray(new PicklistEntry[0]));
+        field.setPolymorphicForeignKey(fieldNode.get("polymorphicForeignKey").booleanValue());
+        field.setPrecision(fieldNode.get("precision").intValue());
+        field.setRelationshipName(fieldNode.get("relationshipName").textValue());
+        field.setRelationshipOrder(fieldNode.get("relationshipOrder").intValue());
+        field.setReferenceTargetField(fieldNode.get("referenceTargetField").textValue());
+        field.setRestrictedPicklist(fieldNode.get("restrictedPicklist").booleanValue());
+        field.setScale(fieldNode.get("scale").intValue());
+        field.setSearchPrefilterable(fieldNode.get("searchPrefilterable").booleanValue());
+        field.setSoapType(SoapType.valueOf(SoapType.valuesToEnums.get(fieldNode.get("soapType").textValue())));
+        field.setSortable(fieldNode.get("sortable").booleanValue());
+        field.setType(FieldType.valueOf(FieldType.valuesToEnums.get(fieldNode.get("type").textValue())));
+        field.setUnique(fieldNode.get("unique").booleanValue());
+        field.setUpdateable(fieldNode.get("updateable").booleanValue());
+        field.setWriteRequiresMasterRead(fieldNode.get("writeRequiresMasterRead").booleanValue());
+
+        //TODO And more...
+
+        return field;
+    }
+
+    private static List<PicklistEntry> buildPicklistEntries(JsonNode picklistEntriesNode) {
+        List<PicklistEntry> picklistEntries = new ArrayList<>();
+        for (JsonNode picklistEntryNode : picklistEntriesNode) {
+            picklistEntries.add(buildPicklistEntry(picklistEntryNode));
+        }
+        return picklistEntries;
+    }
+
+    private static PicklistEntry buildPicklistEntry(JsonNode picklistEntryNode) {
+        PicklistEntry picklistEntry = new PicklistEntry();
+        picklistEntry.setActive(picklistEntryNode.get("active").booleanValue());
+        picklistEntry.setDefaultValue(picklistEntryNode.get("defaultValue").booleanValue());
+        picklistEntry.setLabel(picklistEntryNode.get("label").textValue());
+        picklistEntry.setValue(picklistEntryNode.get("value").textValue());
+
+        return picklistEntry;
     }
 
     private static String extractErrorMessage(String content) {
