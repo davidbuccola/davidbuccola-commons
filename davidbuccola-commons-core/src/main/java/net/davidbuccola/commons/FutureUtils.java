@@ -87,7 +87,7 @@ public final class FutureUtils {
             if (e.getCause() instanceof RuntimeException) {
                 throw (RuntimeException) e.getCause();
             } else {
-                throw new RuntimeException(e);
+                throw new RuntimeException(e.getCause());
             }
         } catch (RuntimeException e) {
             throw e;
