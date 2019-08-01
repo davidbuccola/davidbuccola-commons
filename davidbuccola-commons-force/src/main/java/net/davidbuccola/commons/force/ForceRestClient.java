@@ -473,12 +473,12 @@ public final class ForceRestClient {
     private static List<SObject> buildSObjects(JsonNode jsonObjects) {
         List<SObject> sObjects = new ArrayList<>();
         for (JsonNode sObject : jsonObjects) {
-            sObjects.add(buildSObject((ObjectNode) sObject));
+            sObjects.add(buildSObject(sObject));
         }
         return sObjects;
     }
 
-    private static SObject buildSObject(ObjectNode jsonObject) {
+    private static SObject buildSObject(JsonNode jsonObject) {
         SObject sObject = new SObject(jsonObject.get("attributes").get("type").asText());
         jsonObject.fields().forEachRemaining(fieldEntry -> {
             String fieldName = fieldEntry.getKey();
@@ -507,7 +507,15 @@ public final class ForceRestClient {
                         break;
 
                     case OBJECT:
-                        sObject.setSObjectField(fieldName, buildSObject((ObjectNode) fieldNode));
+                        if (fieldNode.has("records")) {
+                            sObject.setSObjectField(fieldName, buildQueryResult(fieldNode));
+
+                        } else if (fieldNode.has("attributes")) {
+                            sObject.setSObjectField(fieldName, buildSObject(fieldNode));
+
+                        } else {
+                            throw new IllegalArgumentException("Unsupported data type");
+                        }
                         break;
                 }
             }
