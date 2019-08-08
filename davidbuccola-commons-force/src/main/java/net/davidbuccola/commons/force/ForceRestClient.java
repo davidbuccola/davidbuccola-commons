@@ -343,6 +343,50 @@ public final class ForceRestClient {
         return futureResult;
     }
 
+    public CompletableFuture<Void> setPassword(String userId, String password) {
+        CompletableFuture<Void> futureResult = new CompletableFuture<>();
+        Request request = httpClient.POST(buildSetPasswordURI(getAuthentication(), userId))
+            .accept("application/json")
+            .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken())
+            .content(new StringContentProvider("application/json", buildSetPasswordBody(password), Charsets.UTF_8));
+
+        long beginMillis = System.currentTimeMillis();
+        request.send(new BufferingResponseListener() {
+            @Override
+            public void onSuccess(Response response) {
+                try {
+                    if (HttpStatus.isSuccess(response.getStatus())) {
+
+                        debug(log, "Set password succeeded", () -> ImmutableMap.of(
+                            "userId", userId,
+                            "elapsedMillis", System.currentTimeMillis() - beginMillis));
+
+                        futureResult.complete(null);
+                    } else {
+                        throw new HttpRequestException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), request);
+                    }
+                } catch (Exception e) {
+                    log.debug("Set password failed", e);
+
+                    futureResult.completeExceptionally(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Response response, Throwable failure) {
+                log.debug("Set password failed", failure);
+
+                futureResult.completeExceptionally(failure);
+            }
+
+            @Override
+            public void onComplete(Result result) {
+                // The necessary work is done in "onSuccess" and "onFailure".
+            }
+        });
+        return futureResult;
+    }
+
     private static URI buildQueryURI(Authentication authentication, String soql) {
         URI instanceURI = URI.create(authentication.getInstanceUrl());
         try {
@@ -395,6 +439,21 @@ public final class ForceRestClient {
                 instanceURI.getScheme(),
                 instanceURI.getAuthority(),
                 "/services/data/v" + authentication.getApiVersion() + "/sobjects/" + entityName + "/describe",
+                null,
+                null);
+
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("This should never happen", e);
+        }
+    }
+
+    private static URI buildSetPasswordURI(Authentication authentication, String userId) {
+        URI instanceURI = URI.create(authentication.getInstanceUrl());
+        try {
+            return new URI(
+                instanceURI.getScheme(),
+                instanceURI.getAuthority(),
+                "/services/data/v" + authentication.getApiVersion() + "/sobjects/User/" + userId + "/password",
                 null,
                 null);
 
@@ -560,6 +619,12 @@ public final class ForceRestClient {
             error.setFields(stream(errorNode.get("fields").spliterator(), false).map(JsonNode::asText).toArray(String[]::new));
         }
         return error;
+    }
+
+    private static String buildSetPasswordBody(String password) {
+        ObjectNode body = JsonNodeFactory.instance.objectNode();
+        body.put("NewPassword", password);
+        return body.toString();
     }
 
     private static DescribeSObjectResult buildDescribeSObjectResult(JsonNode resultNode) {
