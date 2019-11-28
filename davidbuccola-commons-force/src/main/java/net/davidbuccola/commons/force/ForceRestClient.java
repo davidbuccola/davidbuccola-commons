@@ -74,11 +74,15 @@ public final class ForceRestClient {
         this(server, username, password, DEFAULT_CONCURRENCY);
     }
 
-    public ForceRestClient(String server, String username, String password, int concurrency) {
-        this(server, username, password, concurrency, DEFAULT_API_VERSION);
+    public ForceRestClient(String server, String username, String password, String apiVersion) {
+        this(server, username, password, apiVersion, DEFAULT_CONCURRENCY);
     }
 
-    public ForceRestClient(String server, String username, String password, int concurrency, String apiVersion) {
+    public ForceRestClient(String server, String username, String password, int concurrency) {
+        this(server, username, password, DEFAULT_API_VERSION, concurrency);
+    }
+
+    public ForceRestClient(String server, String username, String password, String apiVersion, int concurrency) {
         this.server = server;
         this.username = username;
         this.password = password;
@@ -91,6 +95,10 @@ public final class ForceRestClient {
             .withApiVersion(apiVersion)
             .withHttpClientFactory(httpClientFactory)
             .withServerUrl(server);
+    }
+
+    public HttpClient getHttpClient() {
+        return httpClient;
     }
 
     public Authentication getAuthentication() {
@@ -508,7 +516,7 @@ public final class ForceRestClient {
                     } else if (List.class.isAssignableFrom(valueClass)) {
                         jsonObject.set(fieldName, toJsonObjects((List<SObject>) value));
                     } else {
-                        throw new IllegalArgumentException("Unsupported SObject field data value");
+                        throw new IllegalArgumentException("Unsupported SObject value class: " + valueClass.getSimpleName());
                     }
                 }
             }

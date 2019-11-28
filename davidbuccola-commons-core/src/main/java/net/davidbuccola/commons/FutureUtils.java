@@ -66,7 +66,7 @@ public final class FutureUtils {
         return CompletableFuture.allOf(toArray(elementFutures))
             .handle((nothing, exception) -> {
                 if (exception == null) {
-                    return elementFutures.stream().map(FutureUtils::getResult).collect(toList()); // Aggregate element results
+                    return elementFutures.stream().map(FutureUtils::awaitFutureResult).collect(toList()); // Aggregate element results
 
                 } else {
                     Throwable effectiveException = exception instanceof CompletionException ? exception.getCause() : exception;
@@ -79,7 +79,7 @@ public final class FutureUtils {
      * Retrieves the result of a {@link Future}. The primary purpose of this helper is to unwrap the {@link
      * ExecutionException} and convert checked exceptions to unchecked exceptions for more convenient use in Lambdas.
      */
-    public static <R> R getResult(Future<R> future) {
+    public static <R> R awaitFutureResult(Future<R> future) {
         try {
             return future.get();
 
