@@ -52,11 +52,11 @@ import static net.davidbuccola.commons.FutureUtils.forAllOf;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public final class ForceRestClient {
 
-    public static final String DEFAULT_API_VERSION = "47.0";
+    public static final String DEFAULT_API_VERSION = "48.0";
     public static final int DEFAULT_CONCURRENCY = 1;
     public static final int DEFAULT_BATCH_SIZE = 200;
 
-    private static final int IDLE_TIMEOUT = 120 * 1000; // Longer for because user creation can take a while
+    private static final int IDLE_TIMEOUT = 240 * 1000; // Longer because user creation can take a while
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(ForceRestClient.class);
@@ -211,13 +211,25 @@ public final class ForceRestClient {
         return futureResult;
     }
 
-    public CompletableFuture<List<UpsertResult>> upsert(List<SObject> records) {
-        return upsert(records, DEFAULT_BATCH_SIZE);
+    public CompletableFuture<List<UpsertResult>> insert(List<SObject> records) {
+        return insert(records, DEFAULT_BATCH_SIZE);
     }
 
-    public CompletableFuture<List<UpsertResult>> upsert(List<SObject> records, int batchSize) {
+    public CompletableFuture<List<UpsertResult>> insert(List<SObject> records, int batchSize) {
+        return upsert(records, batchSize, "POST");
+    }
+
+    public CompletableFuture<List<UpsertResult>> update(List<SObject> records) {
+        return update(records, DEFAULT_BATCH_SIZE);
+    }
+
+    public CompletableFuture<List<UpsertResult>> update(List<SObject> records, int batchSize) {
+        return upsert(records, batchSize, "PATCH");
+    }
+
+    private CompletableFuture<List<UpsertResult>> upsert(List<SObject> records, int batchSize, String method) {
         if (records.size() > batchSize) {
-            return forAllOf(partition(records, batchSize), false, batch -> upsert(batch, batchSize)) // Create in batches
+            return forAllOf(partition(records, batchSize), false, batch -> insert(batch, batchSize)) // Create in batches
                 .thenApply(batchResults ->
                     batchResults.stream().flatMap(Collection::stream).collect(toList())); // Combine results
         }
@@ -225,7 +237,7 @@ public final class ForceRestClient {
         rightToPerformSObjectOperation.acquireUninterruptibly();
         try {
             CompletableFuture<List<UpsertResult>> futureResult = new CompletableFuture<>();
-            Request request = httpClient.POST(buildCompositeSObjectsURI(getAuthentication()))
+            Request request = httpClient.newRequest(buildCompositeSObjectsURI(getAuthentication())).method(method)
                 .accept("application/json")
                 .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken())
                 .content(new StringContentProvider("application/json", buildCompositeSObjectsBody(records), Charsets.UTF_8));
@@ -395,6 +407,49 @@ public final class ForceRestClient {
         return futureResult;
     }
 
+    public CompletableFuture<GetUserInfoResult> getUserInfo() {
+        CompletableFuture<GetUserInfoResult> futureResult = new CompletableFuture<>();
+        Request request = httpClient.newRequest(buildGetUserInfoURI(getAuthentication()))
+            .accept("application/json")
+            .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken());
+
+        long beginMillis = System.currentTimeMillis();
+        request.send(new BufferingResponseListener() {
+            @Override
+            public void onSuccess(Response response) {
+                try {
+                    if (HttpStatus.isSuccess(response.getStatus())) {
+                        GetUserInfoResult result = buildGetUserInfoResult(parseJson(getContentAsString()));
+
+                        debug(log, "Get user info succeeded", () -> ImmutableMap.of(
+                            "elapsedMillis", System.currentTimeMillis() - beginMillis));
+
+                        futureResult.complete(result);
+                    } else {
+                        throw new HttpRequestException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), request);
+                    }
+                } catch (Exception e) {
+                    log.debug("Get user info failed", e);
+
+                    futureResult.completeExceptionally(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Response response, Throwable failure) {
+                log.debug("Get user info failed", failure);
+
+                futureResult.completeExceptionally(failure);
+            }
+
+            @Override
+            public void onComplete(Result result) {
+                // The necessary work is done in "onSuccess" and "onFailure".
+            }
+        });
+        return futureResult;
+    }
+
     private static URI buildQueryURI(Authentication authentication, String soql) {
         URI instanceURI = URI.create(authentication.getInstanceUrl());
         try {
@@ -462,6 +517,21 @@ public final class ForceRestClient {
                 instanceURI.getScheme(),
                 instanceURI.getAuthority(),
                 "/services/data/v" + authentication.getApiVersion() + "/sobjects/User/" + userId + "/password",
+                null,
+                null);
+
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("This should never happen", e);
+        }
+    }
+
+    private static URI buildGetUserInfoURI(Authentication authentication) {
+        URI instanceURI = URI.create(authentication.getInstanceUrl());
+        try {
+            return new URI(
+                instanceURI.getScheme(),
+                instanceURI.getAuthority(),
+                "/services/oauth2/userinfo",
                 null,
                 null);
 
@@ -742,6 +812,19 @@ public final class ForceRestClient {
         picklistEntry.setValue(picklistEntryNode.get("value").textValue());
 
         return picklistEntry;
+    }
+
+    private static GetUserInfoResult buildGetUserInfoResult(JsonNode resultNode) {
+        GetUserInfoResult result = new GetUserInfoResult();
+        result.setUserId(resultNode.get("user_id").textValue());
+        result.setOrganizationId(resultNode.get("organization_id").textValue());
+        result.setUserFullName(resultNode.get("name").textValue());
+        result.setUserEmail(resultNode.get("email").textValue());
+        result.setUserId(resultNode.get("user_id").textValue());
+
+        //TODO And much, much more...
+
+        return result;
     }
 
     private static String extractErrorMessage(String content) {
