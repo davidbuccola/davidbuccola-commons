@@ -821,8 +821,11 @@ public final class ForceRestClient {
         result.setUserFullName(resultNode.get("name").textValue());
         result.setUserEmail(resultNode.get("email").textValue());
         result.setUserId(resultNode.get("user_id").textValue());
-
-        //TODO And much, much more...
+        result.setUserName(resultNode.get("preferred_username").textValue());
+        result.setUserTimeZone(resultNode.get("zoneinfo").textValue());
+        result.setUserLocale(resultNode.get("locale").textValue());
+        result.setUserLanguage(resultNode.get("language").textValue());
+        result.setUserType(resultNode.get("user_type").textValue());
 
         return result;
     }
