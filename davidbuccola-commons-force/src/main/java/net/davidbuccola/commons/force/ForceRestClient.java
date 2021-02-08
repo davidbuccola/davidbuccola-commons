@@ -52,11 +52,9 @@ import static net.davidbuccola.commons.FutureUtils.forAllOf;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public final class ForceRestClient {
 
-    public static final String DEFAULT_API_VERSION = "50.0";
+    public static final String DEFAULT_API_VERSION = "52.0";
     public static final int DEFAULT_CONCURRENCY = 1;
     public static final int DEFAULT_BATCH_SIZE = 200;
-
-    private static final int IDLE_TIMEOUT = 240 * 1000; // Longer because user creation can take a while
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(ForceRestClient.class);
@@ -71,25 +69,40 @@ public final class ForceRestClient {
     private Authentication authentication;
 
     public ForceRestClient(String server, String username, String password) {
-        this(server, username, password, DEFAULT_CONCURRENCY);
+        this(server, username, password, DEFAULT_API_VERSION, DEFAULT_CONCURRENCY);
+    }
+
+    public ForceRestClient(String server, String username, String password, HttpClientFactory httpClientFactory) {
+        this(server, username, password, DEFAULT_API_VERSION, DEFAULT_CONCURRENCY, httpClientFactory);
     }
 
     public ForceRestClient(String server, String username, String password, String apiVersion) {
         this(server, username, password, apiVersion, DEFAULT_CONCURRENCY);
     }
 
+    public ForceRestClient(String server, String username, String password, String apiVersion, HttpClientFactory httpClientFactory) {
+        this(server, username, password, apiVersion, DEFAULT_CONCURRENCY, httpClientFactory);
+    }
+
     public ForceRestClient(String server, String username, String password, int concurrency) {
         this(server, username, password, DEFAULT_API_VERSION, concurrency);
     }
 
+    public ForceRestClient(String server, String username, String password, int concurrency, HttpClientFactory httpClientFactory) {
+        this(server, username, password, DEFAULT_API_VERSION, concurrency, httpClientFactory);
+    }
+
     public ForceRestClient(String server, String username, String password, String apiVersion, int concurrency) {
+        this(server, username, password, apiVersion, concurrency, new BasicHttpClientFactory());
+    }
+
+    public ForceRestClient(String server, String username, String password, String apiVersion, int concurrency, HttpClientFactory httpClientFactory) {
         this.server = server;
         this.username = username;
         this.password = password;
 
         rightToPerformSObjectOperation = new Semaphore(concurrency);
 
-        HttpClientFactory httpClientFactory = new BasicHttpClientFactory().setIdleTimeout(IDLE_TIMEOUT);
         httpClient = httpClientFactory.getHttpClient();
         authenticator = new BasicAuthenticator()
             .withApiVersion(apiVersion)
