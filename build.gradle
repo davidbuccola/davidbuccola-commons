@@ -4,12 +4,12 @@ plugins {
 
 description = 'David Buccola Commons'
 
-version = '1.12-SNAPSHOT'
+version = '1.13-SNAPSHOT'
 group = "net.davidbuccola.${rootProject.name}"
 
 // Symbolic versions for select dependencies (usually ones that have multiple artifacts or that show up often)
 ext {
-    avroVersion = '1.8.2'
+    avroVersion = '1.10.2'
     dropwizardVersion = '1.3.7'
     guavaVersion = '28.0-jre'
     guiceVersion = '4.2.2'
@@ -18,14 +18,14 @@ ext {
     junitVersion = '4.12'
     logbackVersion = '1.2.3'
     slf4jVersion = '1.7.25'
-    scalaBinaryVersion = '2.11'
-    scalaLibraryVersion = '2.11.12'
-    sparkVersion = '2.4.0'
+    scalaBinaryVersion = '2.12'
+    scalaLibraryVersion = '2.12.10'
+    sparkVersion = '3.1.2'
 }
 
 apply from: 'common.gradle'
 
 wrapper {
-    gradleVersion '5.2.1'
+    gradleVersion '7.0'
     distributionType Wrapper.DistributionType.ALL
 }
