@@ -704,7 +704,7 @@ public final class ForceRestClient {
 
     private static IError buildError(JsonNode errorNode) {
         IError error = new com.sforce.soap.partner.Error();
-        error.setStatusCode(StatusCode.valueOf(errorNode.get("statusCode").asText()));
+        error.setStatusCode(toStatusCode(errorNode.get("statusCode").asText()));
         error.setMessage(errorNode.get("message").asText());
         if (errorNode.has("fields")) {
             error.setFields(stream(errorNode.get("fields").spliterator(), false).map(JsonNode::asText).toArray(String[]::new));
@@ -712,6 +712,14 @@ public final class ForceRestClient {
         return error;
     }
 
+    private static StatusCode toStatusCode(String statusCodeText) {
+        try {
+            return StatusCode.valueOf(statusCodeText);
+        } catch (IllegalArgumentException e) {
+            return StatusCode.UNKNOWN_EXCEPTION;
+        }
+    }
+    
     private static String buildSetPasswordBody(String password) {
         ObjectNode body = JsonNodeFactory.instance.objectNode();
         body.put("NewPassword", password);
