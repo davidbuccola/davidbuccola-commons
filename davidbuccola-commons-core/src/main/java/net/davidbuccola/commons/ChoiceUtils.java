@@ -13,9 +13,9 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public final class ChoiceUtils {
 
-    private static Random random = new SecureRandom(Long.toHexString(System.currentTimeMillis()).getBytes());
-    private static Map<Object, SequentialContext> sequentialContexts = new WeakHashMap<>();
-    private static Map<Object, GaussianContext> gaussianContexts = new WeakHashMap<>();
+    private static final Random random = new SecureRandom(Long.toHexString(System.currentTimeMillis()).getBytes());
+    private static final Map<Object, SequentialContext> sequentialContexts = new WeakHashMap<>();
+    private static final Map<Object, RandomContext> randomContexts = new WeakHashMap<>();
 
     private ChoiceUtils() {
         throw new UnsupportedOperationException("Can't be instantiated");
@@ -33,10 +33,12 @@ public final class ChoiceUtils {
     }
 
     public static <T> List<T> nextRandomChoicesOf(List<T> candidates, int targetCount) {
+        RandomContext context = randomContexts.computeIfAbsent(candidates, it -> new RandomContext());
+
         List<T> selections = new ArrayList<>();
         List<T> remainingChoices = new ArrayList<>(candidates);
         for (int i = 0, limit = min(targetCount, remainingChoices.size()); i < limit; i++) {
-            selections.add(remainingChoices.remove(random.nextInt(remainingChoices.size())));
+            selections.add(remainingChoices.remove(context.random.nextInt(remainingChoices.size())));
         }
         return selections;
     }
@@ -63,12 +65,12 @@ public final class ChoiceUtils {
             throw new IllegalStateException("No choices are available");
         }
         int mean = candidates.size() / 2;
-        GaussianContext context = gaussianContexts.computeIfAbsent(candidates, it -> new GaussianContext());
+        RandomContext context = randomContexts.computeIfAbsent(candidates, it -> new RandomContext());
         return candidates.get(nextGaussianInt(context.random, mean, Math.max(1, mean / 3), 0, candidates.size() - 1));
     }
 
     public static <T> int nextGaussianCount(List<T> candidates, int maximumCount) {
-        GaussianContext context = gaussianContexts.computeIfAbsent(candidates, it -> new GaussianContext());
+        RandomContext context = randomContexts.computeIfAbsent(candidates, it -> new RandomContext());
 
         int mean = maximumCount / 2;
         return nextGaussianInt(context.random, mean, Math.max(1, mean / 3), 1, maximumCount);
@@ -103,7 +105,7 @@ public final class ChoiceUtils {
         int nextIndex = 0;
     }
 
-    private static class GaussianContext {
+    private static class RandomContext {
         Random random = new SecureRandom(Long.toHexString(System.currentTimeMillis()).getBytes());
     }
 }
