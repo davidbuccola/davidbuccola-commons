@@ -92,7 +92,7 @@ public final class FutureUtils {
                     throw new AggregateFutureException(elementFutures, exception); // Throw with element information attached
 
                 } else {
-                    return elementFutures.stream().map(FutureUtils::awaitFutureResult).collect(toList()); // Aggregate element results
+                    return elementFutures.stream().map(FutureUtils::awaitFuture).collect(toList()); // Aggregate element results
                 }
             });
     }
@@ -101,7 +101,15 @@ public final class FutureUtils {
      * Retrieves the result of a {@link Future}. The primary purpose of this helper is to unwrap the {@link
      * ExecutionException} and convert checked exceptions to unchecked exceptions for more convenient use in Lambdas.
      */
-    public static <R> R awaitFutureResult(Future<R> future) {
+    public static <R> R awaitCompletionStage(CompletionStage<R> completionStage) {
+        return awaitFuture(completionStage.toCompletableFuture());
+    }
+
+    /**
+     * Retrieves the result of a {@link Future}. The primary purpose of this helper is to unwrap the {@link
+     * ExecutionException} and convert checked exceptions to unchecked exceptions for more convenient use in Lambdas.
+     */
+    public static <R> R awaitFuture(Future<R> future) {
         try {
             return future.get();
 
