@@ -66,14 +66,22 @@ public final class ChoiceUtils {
         }
         int mean = candidates.size() / 2;
         RandomContext context = randomContexts.computeIfAbsent(candidates, it -> new RandomContext());
-        return candidates.get(nextGaussianInt(context.random, mean, Math.max(1, mean / 3), 0, candidates.size() - 1));
+        return candidates.get(nextGaussianInt(context.random, mean, 0, candidates.size() - 1));
     }
 
     public static <T> int nextGaussianCount(List<T> candidates, int maximumCount) {
         RandomContext context = randomContexts.computeIfAbsent(candidates, it -> new RandomContext());
 
         int mean = maximumCount / 2;
-        return nextGaussianInt(context.random, mean, Math.max(1, mean / 3), 1, maximumCount);
+        return nextGaussianInt(context.random, mean, 1, maximumCount);
+    }
+
+    public static int nextGaussianInt(Random random, int mean) {
+        return nextGaussianInt(random, mean, 1, Integer.MAX_VALUE);
+    }
+
+    public static int nextGaussianInt(Random random, int mean, int minimum, int maximum) {
+        return nextGaussianInt(random, mean, 2.0, minimum, Integer.MAX_VALUE);
     }
 
     public static int nextGaussianInt(Random random, int mean, double standardDeviation, int minimum, int maximum) {
