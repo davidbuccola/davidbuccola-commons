@@ -52,7 +52,7 @@ import static net.davidbuccola.commons.FutureUtils.forAllOf;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public final class ForceRestClient {
 
-    public static final String DEFAULT_API_VERSION = "52.0";
+    public static final String DEFAULT_API_VERSION = "55.0";
     public static final int DEFAULT_CONCURRENCY = 1;
     public static final int DEFAULT_BATCH_SIZE = 200;
 
