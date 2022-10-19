@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.base.Charsets;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
@@ -23,7 +22,7 @@ import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.client.api.Result;
 import org.eclipse.jetty.client.util.BufferingResponseListener;
-import org.eclipse.jetty.client.util.StringContentProvider;
+import org.eclipse.jetty.client.util.StringRequestContent;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpStatus;
 import org.slf4j.Logger;
@@ -140,7 +139,7 @@ public final class ForceRestClient {
         CompletableFuture<QueryResult> futureResult = new CompletableFuture<>();
         Request request = httpClient.newRequest(buildQueryURI(getAuthentication(), soql))
             .accept("application/json")
-            .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken());
+            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()));
 
         long beginMillis = System.currentTimeMillis();
         request.send(new BufferingResponseListener() {
@@ -184,7 +183,7 @@ public final class ForceRestClient {
         CompletableFuture<QueryResult> futureResult = new CompletableFuture<>();
         Request request = httpClient.newRequest(buildQueryMoreURI(getAuthentication(), queryLocator))
             .accept("application/json")
-            .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken());
+            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()));
 
         long beginMillis = System.currentTimeMillis();
         request.send(new BufferingResponseListener() {
@@ -252,8 +251,8 @@ public final class ForceRestClient {
             CompletableFuture<List<UpsertResult>> futureResult = new CompletableFuture<>();
             Request request = httpClient.newRequest(buildCompositeSObjectsURI(getAuthentication())).method(method)
                 .accept("application/json")
-                .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken())
-                .content(new StringContentProvider("application/json", buildCompositeSObjectsBody(records), Charsets.UTF_8));
+                .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()))
+                .body(new StringRequestContent("application/json", buildCompositeSObjectsBody(records)));
 
             long beginMillis = System.currentTimeMillis();
             request.send(new BufferingResponseListener() {
@@ -336,7 +335,7 @@ public final class ForceRestClient {
         CompletableFuture<DescribeSObjectResult> futureResult = new CompletableFuture<>();
         Request request = httpClient.newRequest(buildDescribeURI(getAuthentication(), entityName))
             .accept("application/json")
-            .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken());
+            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()));
 
         long beginMillis = System.currentTimeMillis();
         request.send(new BufferingResponseListener() {
@@ -380,8 +379,8 @@ public final class ForceRestClient {
         CompletableFuture<Void> futureResult = new CompletableFuture<>();
         Request request = httpClient.POST(buildSetPasswordURI(getAuthentication(), userId))
             .accept("application/json")
-            .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken())
-            .content(new StringContentProvider("application/json", buildSetPasswordBody(password), Charsets.UTF_8));
+            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()))
+            .body(new StringRequestContent("application/json", buildSetPasswordBody(password)));
 
         long beginMillis = System.currentTimeMillis();
         request.send(new BufferingResponseListener() {
@@ -424,7 +423,7 @@ public final class ForceRestClient {
         CompletableFuture<GetUserInfoResult> futureResult = new CompletableFuture<>();
         Request request = httpClient.newRequest(buildGetUserInfoURI(getAuthentication()))
             .accept("application/json")
-            .header(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken());
+            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()));
 
         long beginMillis = System.currentTimeMillis();
         request.send(new BufferingResponseListener() {
@@ -719,7 +718,7 @@ public final class ForceRestClient {
             return StatusCode.UNKNOWN_EXCEPTION;
         }
     }
-    
+
     private static String buildSetPasswordBody(String password) {
         ObjectNode body = JsonNodeFactory.instance.objectNode();
         body.put("NewPassword", password);

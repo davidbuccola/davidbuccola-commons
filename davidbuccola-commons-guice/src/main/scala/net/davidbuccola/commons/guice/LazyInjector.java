@@ -5,10 +5,7 @@ import com.google.inject.Module;
 import com.google.inject.*;
 import com.google.inject.internal.MoreTypes;
 import com.google.inject.matcher.Matchers;
-import com.google.inject.spi.InjectionListener;
-import com.google.inject.spi.TypeConverterBinding;
-import com.google.inject.spi.TypeEncounter;
-import com.google.inject.spi.TypeListener;
+import com.google.inject.spi.*;
 
 import java.io.Serializable;
 import java.lang.annotation.Annotation;
@@ -31,7 +28,7 @@ public final class LazyInjector implements Injector, Serializable {
      * A cache of injections that have already been resolved so the injection is shared by multiple serialized copies
      * originating from the same {@link LazilyInjected}.
      */
-    private static final transient Map<UUID, Injector> injectors = Collections.synchronizedMap(new MapMaker().weakValues().makeMap());
+    private static final Map<UUID, Injector> injectors = Collections.synchronizedMap(new MapMaker().weakValues().makeMap());
 
     /**
      * A unique identifier for this instance. In the face of serialization schemes that may not preserve the one-to-one
@@ -49,93 +46,103 @@ public final class LazyInjector implements Injector, Serializable {
     }
 
     @Override
-    public final void injectMembers(Object instance) {
+    public void injectMembers(Object instance) {
         getInjector().injectMembers(instance);
     }
 
     @Override
-    public final <T> MembersInjector<T> getMembersInjector(TypeLiteral<T> typeLiteral) {
+    public <T> MembersInjector<T> getMembersInjector(TypeLiteral<T> typeLiteral) {
         return getInjector().getMembersInjector(typeLiteral);
     }
 
     @Override
-    public final <T> MembersInjector<T> getMembersInjector(Class<T> type) {
+    public <T> MembersInjector<T> getMembersInjector(Class<T> type) {
         return getInjector().getMembersInjector(type);
     }
 
     @Override
-    public final Map<Key<?>, Binding<?>> getBindings() {
+    public Map<Key<?>, Binding<?>> getBindings() {
         return getInjector().getBindings();
     }
 
     @Override
-    public final Map<Key<?>, Binding<?>> getAllBindings() {
+    public Map<Key<?>, Binding<?>> getAllBindings() {
         return getInjector().getAllBindings();
     }
 
     @Override
-    public final <T> Binding<T> getBinding(Key<T> key) {
+    public <T> Binding<T> getBinding(Key<T> key) {
         return getInjector().getBinding(key);
     }
 
     @Override
-    public final <T> Binding<T> getBinding(Class<T> type) {
+    public <T> Binding<T> getBinding(Class<T> type) {
         return getInjector().getBinding(type);
     }
 
     @Override
-    public final <T> Binding<T> getExistingBinding(Key<T> key) {
+    public <T> Binding<T> getExistingBinding(Key<T> key) {
         return getInjector().getExistingBinding(key);
     }
 
     @Override
-    public final <T> List<Binding<T>> findBindingsByType(TypeLiteral<T> type) {
+    public <T> List<Binding<T>> findBindingsByType(TypeLiteral<T> type) {
         return getInjector().findBindingsByType(type);
     }
 
     @Override
-    public final <T> Provider<T> getProvider(Key<T> key) {
+    public <T> Provider<T> getProvider(Key<T> key) {
         return getInjector().getProvider(key);
     }
 
     @Override
-    public final <T> Provider<T> getProvider(Class<T> type) {
+    public <T> Provider<T> getProvider(Class<T> type) {
         return getInjector().getProvider(type);
     }
 
     @Override
-    public final <T> T getInstance(Key<T> key) {
+    public <T> T getInstance(Key<T> key) {
         return getInjector().getInstance(key);
     }
 
     @Override
-    public final <T> T getInstance(Class<T> type) {
+    public <T> T getInstance(Class<T> type) {
         return getInjector().getInstance(type);
     }
 
     @Override
-    public final Injector getParent() {
+    public Injector getParent() {
         return getInjector().getParent();
     }
 
     @Override
-    public final Injector createChildInjector(Iterable<? extends Module> modules) {
+    public Injector createChildInjector(Iterable<? extends Module> modules) {
         return getInjector().createChildInjector(modules);
     }
 
     @Override
-    public final Injector createChildInjector(Module... modules) {
+    public Injector createChildInjector(Module... modules) {
         return getInjector().createChildInjector(modules);
     }
 
     @Override
-    public final Map<Class<? extends Annotation>, Scope> getScopeBindings() {
+    public Map<Class<? extends Annotation>, Scope> getScopeBindings() {
         return getInjector().getScopeBindings();
     }
 
     @Override
-    public final Set<TypeConverterBinding> getTypeConverterBindings() {
+    public Set<TypeConverterBinding> getTypeConverterBindings() {
         return getInjector().getTypeConverterBindings();
+    }
+
+    @Override
+    public List<Element> getElements() {
+        return getInjector().getElements();
+    }
+
+    @Override
+    public Map<TypeLiteral<?>, List<InjectionPoint>> getAllMembersInjectorInjectionPoints() {
+        return getInjector().getAllMembersInjectorInjectionPoints();
     }
 
     /**

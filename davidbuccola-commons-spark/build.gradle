@@ -12,18 +12,7 @@ dependencies {
     api "org.apache.avro:avro:${avroVersion}"
     api "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
     api "org.apache.spark:spark-streaming_${scalaBinaryVersion}:${sparkVersion}"
-    api "org.apache.hadoop:hadoop-common:2.7.2"
-    api "org.apache.hadoop:hadoop-mapreduce-client-core:2.7.2"
 
-    implementation "org.scala-lang.modules:scala-java8-compat_${scalaBinaryVersion}:0.9.0"
+    implementation "org.scala-lang.modules:scala-java8-compat_${scalaBinaryVersion}:1.0.2"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
-
-    testImplementation "junit:junit:${junitVersion}"
-    testImplementation "org.hamcrest:hamcrest-core:${hamcrestVersion}"
-    testImplementation "org.hamcrest:hamcrest-library:${hamcrestVersion}"
-
-    testRuntimeOnly project(':config')
-    testRuntimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
-    testRuntimeOnly "org.slf4j:jcl-over-slf4j:${slf4jVersion}"
-    testRuntimeOnly "org.slf4j:log4j-over-slf4j:${slf4jVersion}"
 }

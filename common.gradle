@@ -20,8 +20,8 @@ allprojects {
             // Configure Java and/or Scala.
             if (plugins.hasPlugin('java') || plugins.hasPlugin('java-library') || plugins.hasPlugin('scala')) {
 
-                sourceCompatibility = 1.8
-                targetCompatibility = 1.8
+                sourceCompatibility = JavaVersion.VERSION_11
+                targetCompatibility = JavaVersion.VERSION_11
 
                 task('sourcesJar', type: Jar, dependsOn: classes) {
                     //noinspection GroovyAccessibility, GroovyAssignabilityCheck
