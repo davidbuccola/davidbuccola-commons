@@ -11,9 +11,7 @@ import com.google.common.collect.Multimap;
 import com.salesforce.streaming.core.BasicHttpClientFactory;
 import com.salesforce.streaming.core.HttpClientFactory;
 import com.salesforce.streaming.core.auth.Authentication;
-import com.salesforce.streaming.core.auth.Authenticator;
 import com.salesforce.streaming.core.auth.BasicAuthenticator;
-import com.salesforce.streaming.core.auth.BasicIdentity;
 import com.sforce.soap.partner.*;
 import com.sforce.soap.partner.sobject.SObject;
 import org.eclipse.jetty.client.HttpClient;
@@ -51,7 +49,7 @@ import static net.davidbuccola.commons.FutureUtils.forAllOf;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public final class ForceRestClient {
 
-    public static final String DEFAULT_API_VERSION = "55.0";
+    public static final String DEFAULT_API_VERSION = "56.0";
     public static final int DEFAULT_CONCURRENCY = 1;
     public static final int DEFAULT_BATCH_SIZE = 200;
 
@@ -61,7 +59,7 @@ public final class ForceRestClient {
     private final String server;
     private final String username;
     private final String password;
-    private final Authenticator authenticator;
+    private final BasicAuthenticator authenticator;
     private final HttpClient httpClient;
     private final Semaphore rightToPerformSObjectOperation;
 
@@ -115,7 +113,7 @@ public final class ForceRestClient {
 
     public Authentication getAuthentication() {
         if (authentication == null) {
-            authentication = authenticator.authenticate(new BasicIdentity(username, password));
+            authentication = authenticator.createIdentity(username, password).authenticate();
 
             debug(log, "Authenticated", () -> ImmutableMap.of("server", server, "username", username));
         }
