@@ -15,7 +15,7 @@ import com.salesforce.streaming.core.auth.BasicAuthenticator;
 import com.sforce.soap.partner.*;
 import com.sforce.soap.partner.sobject.SObject;
 import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.HttpRequestException;
+import org.eclipse.jetty.client.HttpResponseException;
 import org.eclipse.jetty.client.api.Request;
 import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.client.api.Result;
@@ -113,7 +113,7 @@ public final class ForceRestClient {
 
     public Authentication getAuthentication() {
         if (authentication == null) {
-            authentication = authenticator.createIdentity(username, password).authenticate();
+            authentication = authenticator.createIdentity(username, password).getAuthentication();
 
             debug(log, "Authenticated", () -> ImmutableMap.of("server", server, "username", username));
         }
@@ -153,7 +153,7 @@ public final class ForceRestClient {
 
                         futureResult.complete(result);
                     } else {
-                        throw new HttpRequestException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), request);
+                        throw new HttpResponseException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), response);
                     }
                 } catch (Exception e) {
                     log.debug("Query failed", e);
@@ -197,7 +197,7 @@ public final class ForceRestClient {
 
                         futureResult.complete(result);
                     } else {
-                        throw new HttpRequestException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), request);
+                        throw new HttpResponseException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), response);
                     }
                 } catch (Exception e) {
                     log.debug("Query failed", e);
@@ -298,7 +298,7 @@ public final class ForceRestClient {
                             rightToPerformSObjectOperation.release();
                             futureResult.complete(results);
                         } else {
-                            throw new HttpRequestException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), request);
+                            throw new HttpResponseException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), response);
                         }
                     } catch (Exception e) {
                         log.debug("Upsert failed", e);
@@ -349,7 +349,7 @@ public final class ForceRestClient {
 
                         futureResult.complete(result);
                     } else {
-                        throw new HttpRequestException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), request);
+                        throw new HttpResponseException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), response);
                     }
                 } catch (Exception e) {
                     log.debug("Describe failed", e);
@@ -393,7 +393,7 @@ public final class ForceRestClient {
 
                         futureResult.complete(null);
                     } else {
-                        throw new HttpRequestException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), request);
+                        throw new HttpResponseException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), response);
                     }
                 } catch (Exception e) {
                     log.debug("Set password failed", e);
@@ -436,7 +436,7 @@ public final class ForceRestClient {
 
                         futureResult.complete(result);
                     } else {
-                        throw new HttpRequestException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), request);
+                        throw new HttpResponseException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), response);
                     }
                 } catch (Exception e) {
                     log.debug("Get user info failed", e);
