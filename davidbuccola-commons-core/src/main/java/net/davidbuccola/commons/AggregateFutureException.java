@@ -26,8 +26,8 @@ public class AggregateFutureException extends RuntimeException {
     }
 
     /**
-     * Gets the collection of element futures. Some of the futures may have succeeded and some may have failed. The fact
-     * that this exception being thrown means that at least one failed.
+     * Gets the collection of element futures. Some futures may have succeeded and some may have failed. The fact that
+     * this exception being thrown means that at least one failed.
      */
     public List<CompletableFuture<?>> getElementFutures() {
         return elementFutures;

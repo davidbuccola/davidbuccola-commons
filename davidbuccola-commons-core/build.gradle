@@ -10,6 +10,8 @@ description = 'David Buccola Commons - Core'
 dependencies {
     api "org.apache.avro:avro:${avroVersion}"
 
+    compileOnly "javax.inject:javax.inject:1"
+
     implementation 'commons-cli:commons-cli:1.5.0'
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${jackson2Version}"
     implementation "io.dropwizard:dropwizard-configuration:${dropwizardVersion}"

@@ -8,13 +8,13 @@ plugins {
 description = 'David Buccola Commons - Salesforce'
 
 dependencies {
+    api "com.force.api:force-partner-api:${forceApiVersion}"
+    api "net.davidbuccola.force-streaming:force-streaming-core:${forceStreamingVersion}"
+
     implementation project(':davidbuccola-commons-core')
-    implementation 'commons-cli:commons-cli:1.5.0'
-    implementation "com.force.api:force-partner-api:56.0.0"
-    implementation "org.eclipse.jetty:jetty-client:${jettyVersion}"
 
     implementation "com.fasterxml.jackson.core:jackson-databind:${jackson2Version}"
     implementation "com.google.guava:guava:${guavaVersion}"
-    implementation "net.davidbuccola.force-streaming:force-streaming-core:${forceStreamingVersion}"
+    implementation "org.eclipse.jetty:jetty-client:${jettyVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 }

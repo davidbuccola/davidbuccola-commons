@@ -44,7 +44,7 @@ public class PropertiesUtils {
     public static Optional<Map<String, String>> getProperties(String[] args) {
         ImmutableMap.Builder<String, String> mapBuilder = ImmutableMap.builder();
         for (String arg : args) {
-            if (arg.length() > 0 && !arg.startsWith("-") && arg.contains("=")) {
+            if (!arg.startsWith("-") && arg.contains("=")) {
                 int equalOffset = arg.indexOf('=');
                 mapBuilder.put(arg.substring(0, equalOffset), arg.substring(equalOffset + 1));
             }

@@ -16,6 +16,7 @@ public final class ResourceUtils {
         throw new UnsupportedOperationException("Can't be instantiated");
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     public static String getResourceAsString(String resource) {
         try {
             InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(resource);

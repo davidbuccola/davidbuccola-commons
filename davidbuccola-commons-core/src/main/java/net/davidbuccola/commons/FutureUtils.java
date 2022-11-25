@@ -43,7 +43,7 @@ public final class FutureUtils {
      * results are returned as a list containing one result entry for each element from the input collection.
      *
      * @param elements        the elements upon which to operate
-     * @param stopOnException whether or not to cancel pending asynchronous operations when an exception occurs on any
+     * @param stopOnException whether to cancel pending asynchronous operations when an exception occurs on any
      *                        operation.
      * @param function        asynchronous operation applied to all elements
      */

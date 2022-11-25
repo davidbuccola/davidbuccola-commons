@@ -1,0 +1,19 @@
+plugins {
+    id 'scala'
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+    id 'idea'
+}
+
+description = 'David Buccola Commons - Cassandra'
+
+dependencies {
+
+    api "com.google.inject:guice:${guiceVersion}"
+    api "com.datastax.spark:spark-cassandra-connector_${scalaBinaryVersion}:${cassandraConnectorVersion}"
+
+    implementation project(':davidbuccola-commons-core')
+    implementation "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
+    implementation "org.slf4j:slf4j-api:${slf4jVersion}"
+}

@@ -1,0 +1,17 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+    id 'idea'
+}
+
+description = 'David Buccola Commons - Jersey'
+
+dependencies {
+    api "org.apache.avro:avro:${avroVersion}"
+    api "org.glassfish.jersey.core:jersey-common:${jerseyVersion}"
+
+    implementation project(':davidbuccola-commons-core')
+    implementation "com.google.guava:guava:${guavaVersion}"
+    implementation "org.slf4j:slf4j-api:${slf4jVersion}"
+}
