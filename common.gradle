@@ -23,14 +23,15 @@ allprojects {
                 sourceCompatibility = JavaVersion.VERSION_11
                 targetCompatibility = JavaVersion.VERSION_11
 
-                task('sourcesJar', type: Jar, dependsOn: classes) {
+                tasks.register('sourcesJar', Jar) {
+                    dependsOn classes
                     //noinspection GroovyAccessibility, GroovyAssignabilityCheck
                     archiveClassifier = 'sources'
                     if (sourceSets.main.hasProperty('allJava')) from sourceSets.main.allJava.srcDirs
                     if (sourceSets.main.hasProperty('allScala')) from sourceSets.main.allScala.srcDirs
                 }
 
-                task('javadocJar', type: Jar) {
+                tasks.register('javadocJar', Jar) {
                     //noinspection GroovyAccessibility, GroovyAssignabilityCheck
                     archiveClassifier = 'javadoc'
                     if (tasks.hasProperty('javadoc')) from javadoc.destinationDir
@@ -42,12 +43,12 @@ allprojects {
                     archives javadocJar
                 }
 
-                tasks.withType(JavaCompile) {
+                tasks.withType(JavaCompile).configureEach {
                     options.debug = true
                     options.encoding = 'UTF-8'
                 }
 
-                tasks.withType(Jar) {
+                tasks.withType(Jar).configureEach {
                     manifest {
                         attributes(
                                 'Implementation-Title': project.description,
@@ -58,7 +59,7 @@ allprojects {
                     }
                 }
 
-                tasks.withType(Test) {
+                tasks.withType(Test).configureEach {
                     jvmArgs '-Xmx1024m', "-Djava.library.path=${buildDir}/lib"
                 }
 
