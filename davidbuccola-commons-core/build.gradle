@@ -14,6 +14,7 @@ dependencies {
 
     implementation 'commons-cli:commons-cli:1.5.0'
     implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${jackson2Version}"
+    implementation "com.google.guava:guava:${guavaVersion}"
     implementation "io.dropwizard:dropwizard-configuration:${dropwizardVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 

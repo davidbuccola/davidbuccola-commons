@@ -26,7 +26,7 @@ public final class ChoiceUtils {
     }
 
     public static <T> T nextRandomChoiceOf(List<T> candidates) {
-        if (candidates.size() == 0) {
+        if (candidates.isEmpty()) {
             throw new IllegalStateException("No choices are available");
         }
         return nextRandomChoicesOf(candidates, 1).get(0);
@@ -44,7 +44,7 @@ public final class ChoiceUtils {
     }
 
     public static <T> T nextSequentialChoiceOf(List<T> candidates) {
-        if (candidates.size() == 0) {
+        if (candidates.isEmpty()) {
             throw new IllegalStateException("No choices are available");
         }
         return nextSequentialChoicesOf(candidates, 1).get(0);
@@ -61,7 +61,7 @@ public final class ChoiceUtils {
     }
 
     public static <T> T nextGaussianChoiceOf(List<T> candidates) {
-        if (candidates.size() == 0) {
+        if (candidates.isEmpty()) {
             throw new IllegalStateException("No choices are available");
         }
         int mean = candidates.size() / 2;
@@ -81,7 +81,7 @@ public final class ChoiceUtils {
     }
 
     public static int nextGaussianInt(Random random, int mean, int minimum, int maximum) {
-        return nextGaussianInt(random, mean, 2.0, minimum, Integer.MAX_VALUE);
+        return nextGaussianInt(random, mean, 2.0, minimum, maximum);
     }
 
     public static int nextGaussianInt(Random random, int mean, double standardDeviation, int minimum, int maximum) {

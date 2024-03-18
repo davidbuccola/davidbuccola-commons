@@ -11,8 +11,10 @@ description = 'David Buccola Commons - Guice'
 dependencies {
     api "com.google.inject:guice:${guiceVersion}"
 
+    compileOnly "javax.inject:javax.inject:1"
     compileOnly "org.scala-lang:scala-library:${scalaLibraryVersion}"
 
+    implementation "com.google.guava:guava:${guavaVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 
     testImplementation "junit:junit:${junitVersion}"

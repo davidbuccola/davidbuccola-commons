@@ -21,6 +21,7 @@ import org.eclipse.jetty.client.api.Response;
 import org.eclipse.jetty.client.api.Result;
 import org.eclipse.jetty.client.util.BufferingResponseListener;
 import org.eclipse.jetty.client.util.StringRequestContent;
+import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpStatus;
 import org.slf4j.Logger;
@@ -45,11 +46,10 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
 import static net.davidbuccola.commons.FutureUtils.forAllOf;
 
-
 @SuppressWarnings({"WeakerAccess", "unused"})
 public final class ForceRestClient {
 
-    public static final String DEFAULT_API_VERSION = "56.0";
+    public static final String DEFAULT_API_VERSION = "60.0";
     public static final int DEFAULT_CONCURRENCY = 1;
     public static final int DEFAULT_BATCH_SIZE = 200;
 
@@ -62,6 +62,8 @@ public final class ForceRestClient {
     private final BasicAuthenticator authenticator;
     private final HttpClient httpClient;
     private final Semaphore rightToPerformSObjectOperation;
+    private final Consumer<HttpFields.Mutable> headerPopulator;
+    private String callOptions;
 
     private Authentication authentication;
 
@@ -97,6 +99,7 @@ public final class ForceRestClient {
         this.server = server;
         this.username = username;
         this.password = password;
+        this.callOptions = String.format("client=SfdcInternalQA/%s.0i", apiVersion);
 
         rightToPerformSObjectOperation = new Semaphore(concurrency);
 
@@ -105,6 +108,11 @@ public final class ForceRestClient {
             .withApiVersion(apiVersion)
             .withHttpClientFactory(httpClientFactory)
             .withServerUrl(server);
+
+        headerPopulator = httpFields -> {
+            httpFields.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken());
+            httpFields.add("Sforce-Call-Options", callOptions);
+        };
     }
 
     public HttpClient getHttpClient() {
@@ -118,6 +126,10 @@ public final class ForceRestClient {
             debug(log, "Authenticated", () -> ImmutableMap.of("server", server, "username", username));
         }
         return authentication;
+    }
+
+    public void setCallOptions(String callOptions) {
+        this.callOptions = callOptions;
     }
 
     public void query(String soql, Consumer<QueryResult> resultProcessor) throws ExecutionException, InterruptedException {
@@ -137,7 +149,7 @@ public final class ForceRestClient {
         CompletableFuture<QueryResult> futureResult = new CompletableFuture<>();
         Request request = httpClient.newRequest(buildQueryURI(getAuthentication(), soql))
             .accept("application/json")
-            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()));
+            .headers(headerPopulator);
 
         long beginMillis = System.currentTimeMillis();
         request.send(new BufferingResponseListener() {
@@ -181,7 +193,7 @@ public final class ForceRestClient {
         CompletableFuture<QueryResult> futureResult = new CompletableFuture<>();
         Request request = httpClient.newRequest(buildQueryMoreURI(getAuthentication(), queryLocator))
             .accept("application/json")
-            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()));
+            .headers(headerPopulator);
 
         long beginMillis = System.currentTimeMillis();
         request.send(new BufferingResponseListener() {
@@ -249,7 +261,7 @@ public final class ForceRestClient {
             CompletableFuture<List<UpsertResult>> futureResult = new CompletableFuture<>();
             Request request = httpClient.newRequest(buildCompositeSObjectsURI(getAuthentication())).method(method)
                 .accept("application/json")
-                .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()))
+                .headers(headerPopulator)
                 .body(new StringRequestContent("application/json", buildCompositeSObjectsBody(records)));
 
             long beginMillis = System.currentTimeMillis();
@@ -287,7 +299,7 @@ public final class ForceRestClient {
                                     "elapsedMillis", System.currentTimeMillis() - beginMillis));
                             }
 
-                            if (resultsByErrorMessage.size() > 0) {
+                            if (!resultsByErrorMessage.isEmpty()) {
                                 resultsByErrorMessage.asMap().forEach((message, resultsWithSameMessage) ->
                                     error(log, "Failed to upsert records", null, () -> ImmutableMap.of(
                                         "count", resultsWithSameMessage.size(),
@@ -333,7 +345,7 @@ public final class ForceRestClient {
         CompletableFuture<DescribeSObjectResult> futureResult = new CompletableFuture<>();
         Request request = httpClient.newRequest(buildDescribeURI(getAuthentication(), entityName))
             .accept("application/json")
-            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()));
+            .headers(headerPopulator);
 
         long beginMillis = System.currentTimeMillis();
         request.send(new BufferingResponseListener() {
@@ -377,7 +389,7 @@ public final class ForceRestClient {
         CompletableFuture<Void> futureResult = new CompletableFuture<>();
         Request request = httpClient.POST(buildSetPasswordURI(getAuthentication(), userId))
             .accept("application/json")
-            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()))
+            .headers(headerPopulator)
             .body(new StringRequestContent("application/json", buildSetPasswordBody(password)));
 
         long beginMillis = System.currentTimeMillis();
@@ -421,7 +433,7 @@ public final class ForceRestClient {
         CompletableFuture<GetUserInfoResult> futureResult = new CompletableFuture<>();
         Request request = httpClient.newRequest(buildGetUserInfoURI(getAuthentication()))
             .accept("application/json")
-            .headers(headers -> headers.add(HttpHeader.AUTHORIZATION, "Bearer " + authentication.getBearerToken()));
+            .headers(headerPopulator);
 
         long beginMillis = System.currentTimeMillis();
         request.send(new BufferingResponseListener() {
