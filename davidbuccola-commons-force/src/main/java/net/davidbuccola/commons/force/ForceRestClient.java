@@ -251,7 +251,7 @@ public final class ForceRestClient {
 
     private CompletableFuture<List<UpsertResult>> upsert(List<SObject> records, int batchSize, String method) {
         if (records.size() > batchSize) {
-            return forAllOf(partition(records, batchSize), false, batch -> insert(batch, batchSize)) // Create in batches
+            return forAllOf(partition(records, batchSize), false, batch -> upsert(batch, batchSize, method)) // Create in batches
                 .thenApply(batchResults ->
                     batchResults.stream().flatMap(Collection::stream).collect(toList())); // Combine results
         }
