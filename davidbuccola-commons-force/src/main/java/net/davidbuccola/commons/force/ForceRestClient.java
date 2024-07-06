@@ -565,7 +565,7 @@ public final class ForceRestClient {
     private static String buildCompositeSObjectsBody(List<SObject> sObjects) {
         ObjectNode body = JsonNodeFactory.instance.objectNode();
         body.put("allOrNone", false);
-        body.set("records", toJsonObjects(sObjects));
+        body.set("records", toJsonArray(sObjects));
         return body.toString();
     }
 
@@ -573,10 +573,14 @@ public final class ForceRestClient {
         return objectMapper.readTree(nullToEmpty(content));
     }
 
-    private static ArrayNode toJsonObjects(List<SObject> sObjects) {
+    private static ArrayNode toJsonArray(List<?> values) {
         ArrayNode node = JsonNodeFactory.instance.arrayNode();
-        for (SObject record : sObjects) {
-            node.add(toJsonObject(record));
+        for (Object value : values) {
+            if (value instanceof SObject) {
+                node.add(toJsonObject((SObject) value));
+            } else {
+                node.add(String.valueOf(value));
+            }
         }
         return node;
     }
@@ -606,7 +610,7 @@ public final class ForceRestClient {
                     } else if (valueClass == SObject.class) {
                         jsonObject.set(fieldName, toJsonObject((SObject) value));
                     } else if (List.class.isAssignableFrom(valueClass)) {
-                        jsonObject.set(fieldName, toJsonObjects((List<SObject>) value));
+                        jsonObject.set(fieldName, toJsonArray((List<Object>) value));
                     } else {
                         throw new IllegalArgumentException("Unsupported SObject value class: " + valueClass.getSimpleName());
                     }
