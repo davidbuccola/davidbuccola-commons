@@ -7,7 +7,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -98,27 +103,24 @@ public final class FutureUtils {
     }
 
     /**
-     * Retrieves the result of a {@link Future}. The primary purpose of this helper is to unwrap the {@link
-     * ExecutionException} and convert checked exceptions to unchecked exceptions for more convenient use in Lambdas.
+     * Retrieves the result of a {@link Future}. The primary purpose of this helper is to convert checked exceptions to
+     * unchecked exceptions for more convenient use in Lambdas.
      */
     public static <R> R awaitCompletionStage(CompletionStage<R> completionStage) {
         return awaitFuture(completionStage.toCompletableFuture());
     }
 
     /**
-     * Retrieves the result of a {@link Future}. The primary purpose of this helper is to unwrap the {@link
-     * ExecutionException} and convert checked exceptions to unchecked exceptions for more convenient use in Lambdas.
+     * Retrieves the result of a {@link Future}. The primary purpose of this helper is to convert checked exceptions to
+     * unchecked exceptions for more convenient use in Lambdas.
      */
     public static <R> R awaitFuture(Future<R> future) {
         try {
             return future.get();
 
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof RuntimeException) {
-                throw (RuntimeException) e.getCause();
-            } else {
-                throw new RuntimeException(e.getCause());
-            }
+            throw new RuntimeExecutionException(e);
+
         } catch (RuntimeException e) {
             throw e;
 
