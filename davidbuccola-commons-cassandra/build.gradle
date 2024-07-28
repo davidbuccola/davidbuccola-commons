@@ -15,6 +15,7 @@ dependencies {
 
     implementation project(':davidbuccola-commons-core')
     implementation "com.google.guava:guava:${guavaVersion}"
+    implementation "org.apache.commons:commons-text:${commonsTextVersion}"
     implementation "org.apache.spark:spark-core_${scalaBinaryVersion}:${sparkVersion}"
     implementation "org.slf4j:slf4j-api:${slf4jVersion}"
 }
