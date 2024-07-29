@@ -30,7 +30,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
@@ -143,6 +147,53 @@ public final class ForceRestClient {
             resultProcessor.accept(result);
         } while (!result.isDone());
 
+    }
+
+    public <T extends JsonNode> CompletableFuture<JsonNode> connectApiPost(String relativeResourcePath, T body) {
+        CompletableFuture<JsonNode> futureResult = new CompletableFuture<>();
+        Request request = httpClient.newRequest(buildConnectApiURI(getAuthentication(), relativeResourcePath))
+            .accept("application/json")
+            .headers(headerPopulator)
+            .method("POST")
+            .body(new StringRequestContent("application/json", body.toString()));
+
+
+        long beginMillis = System.currentTimeMillis();
+        request.send(new BufferingResponseListener() {
+            @Override
+            public void onSuccess(Response response) {
+                try {
+                    if (HttpStatus.isSuccess(response.getStatus())) {
+                        JsonNode result = parseJson(getContentAsString());
+
+                        debug(log, "Connect API succeeded", () -> ImmutableMap.of(
+                            "relativeResourcePath", relativeResourcePath,
+                            "elapsedMillis", System.currentTimeMillis() - beginMillis));
+
+                        futureResult.complete(result);
+                    } else {
+                        throw new HttpResponseException(response.getReason() + ": " + extractErrorMessage(getContentAsString()), response);
+                    }
+                } catch (Exception e) {
+                    log.debug("Connect API failed", e);
+
+                    futureResult.completeExceptionally(e);
+                }
+            }
+
+            @Override
+            public void onFailure(Response response, Throwable failure) {
+                log.debug("Connect API failed", failure);
+
+                futureResult.completeExceptionally(failure);
+            }
+
+            @Override
+            public void onComplete(Result result) {
+                // The necessary work is done in "onSuccess" and "onFailure".
+            }
+        });
+        return futureResult;
     }
 
     public CompletableFuture<QueryResult> query(String soql) {
@@ -470,6 +521,21 @@ public final class ForceRestClient {
             }
         });
         return futureResult;
+    }
+
+    private static URI buildConnectApiURI(Authentication authentication, String relativeResourcePath) {
+        URI instanceURI = URI.create(authentication.getInstanceUrl());
+        try {
+            return new URI(
+                instanceURI.getScheme(),
+                instanceURI.getAuthority(),
+                "/services/data/v" + authentication.getApiVersion() + relativeResourcePath,
+                null,
+                null);
+
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("This should never happen", e);
+        }
     }
 
     private static URI buildQueryURI(Authentication authentication, String soql) {
