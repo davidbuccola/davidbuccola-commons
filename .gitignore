@@ -14,3 +14,4 @@ null.lck
 out
 release.properties
 pom.xml.releaseBackup
+.lastDeploymentsId
