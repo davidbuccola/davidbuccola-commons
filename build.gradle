@@ -4,7 +4,7 @@ plugins {
 
 description = 'David Buccola Commons'
 
-version = '1.26-SNAPSHOT'
+version = '1.26'
 group = "net.davidbuccola.${rootProject.name}"
 
 // Symbolic versions for select dependencies (usually ones that have multiple artifacts or that show up often)
@@ -13,7 +13,7 @@ ext {
     cassandraConnectorVersion = '3.2.0'
     commonsTextVersion = '1.10.0'
     dropwizardVersion = '1.3.7'
-    forceStreamingVersion = '6.5'
+    forceStreamingVersion = '6.6'
     forceApiVersion = '60.0.0'
     guavaVersion = '33.1.0-jre'
     guiceVersion = '5.1.0'
@@ -32,6 +32,6 @@ ext {
 apply from: 'common.gradle'
 
 wrapper {
-    gradleVersion '8.1.1'
-    distributionType Wrapper.DistributionType.ALL
+    gradleVersion = '8.14'
+    distributionType = Wrapper.DistributionType.ALL
 }

@@ -20,19 +20,13 @@ allprojects {
             // Configure Java and/or Scala.
             if (plugins.hasPlugin('java') || plugins.hasPlugin('java-library') || plugins.hasPlugin('scala')) {
 
-                sourceCompatibility = JavaVersion.VERSION_11
-                targetCompatibility = JavaVersion.VERSION_11
-
                 tasks.register('sourcesJar', Jar) {
                     dependsOn classes
-                    //noinspection GroovyAccessibility, GroovyAssignabilityCheck
                     archiveClassifier = 'sources'
-                    if (sourceSets.main.hasProperty('allJava')) from sourceSets.main.allJava.srcDirs
-                    if (sourceSets.main.hasProperty('allScala')) from sourceSets.main.allScala.srcDirs
+                    from sourceSets.main.getAllSource()
                 }
 
                 tasks.register('javadocJar', Jar) {
-                    //noinspection GroovyAccessibility, GroovyAssignabilityCheck
                     archiveClassifier = 'javadoc'
                     if (tasks.hasProperty('javadoc')) from javadoc.destinationDir
                     if (tasks.hasProperty('scaladoc')) from scaladoc.destinationDir
@@ -44,8 +38,19 @@ allprojects {
                 }
 
                 tasks.withType(JavaCompile).configureEach {
+                    options.release = 11
                     options.debug = true
+                    options.deprecation = true
                     options.encoding = 'UTF-8'
+                    options.compilerArgs = ['-Xlint:unchecked']
+                }
+
+                tasks.withType(ScalaCompile).configureEach {
+                    options.release = 11
+                    options.debug = true
+                    options.deprecation = true
+                    options.encoding = 'UTF-8'
+                    options.compilerArgs = ['-Xlint:unchecked']
                 }
 
                 tasks.withType(Jar).configureEach {
@@ -60,7 +65,7 @@ allprojects {
                 }
 
                 tasks.withType(Test).configureEach {
-                    jvmArgs '-Xmx1024m', "-Djava.library.path=${buildDir}/lib"
+                    jvmArgs '-Xmx1024m', "-Djava.library.path=${layout.buildDirectory.file("lib").get().asFile.path}", '--add-exports', 'java.base/sun.nio.ch=ALL-UNNAMED'
                 }
 
                 // Input libraries shouldn't define concrete log bindings. Leave that to the application.
@@ -109,28 +114,8 @@ allprojects {
             if (plugins.hasPlugin('maven-publish')) {
                 publishing {
                     repositories {
-                        if (version.endsWith('SNAPSHOT')) {
-                            maven {
-                                name = 'central-snapshot'
-                                url = 'https://oss.sonatype.org/content/repositories/snapshots/'
-                                if (project.hasProperty('sonatype_user')) {
-                                    credentials {
-                                        username = "${sonatype_user}"
-                                        password = "${sonatype_password}"
-                                    }
-                                }
-                            }
-                        } else {
-                            maven {
-                                name = 'central-staging'
-                                url = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-                                if (project.hasProperty('sonatype_user')) {
-                                    credentials {
-                                        username = "${sonatype_user}"
-                                        password = "${sonatype_password}"
-                                    }
-                                }
-                            }
+                        maven {
+                            url = '/tmp/repository' // Will use Central Publishing API from here
                         }
                     }
                     if (sourceSets.main.allJava) {
@@ -150,6 +135,13 @@ allprojects {
                                         name = 'David Buccola'
                                         url = 'https://github.com/davidbuccola'
                                     }
+                                    licenses {
+                                        license {
+                                            name = "The Apache License, Version 2.0"
+                                            url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                                            distribution = 'repo'
+                                        }
+                                    }
                                     developers {
                                         developer {
                                             id = 'davidbuccola'
@@ -162,19 +154,6 @@ allprojects {
                                         connection = 'scm:git:git@github.com:davidbuccola/' + rootProject.name + '.git'
                                         developerConnection = 'scm:git:git@github.com:davidbuccola/' + rootProject.name + '.git'
                                     }
-                                    licenses {
-                                        license {
-                                            name = 'The Apache Software License, Version 2.0'
-                                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                                            distribution = 'repo'
-                                        }
-                                    }
-//                                    //noinspection GroovyAssignabilityCheck
-//                                    parent {
-//                                        groupId 'org.sonatype.oss'
-//                                        artifactId 'oss-parent'
-//                                        version '7'
-//                                    }
                                 }
                             }
                         }
@@ -182,21 +161,24 @@ allprojects {
                 }
             }
 
-            // Configure Artifactory publication.
-            if (plugins.hasPlugin('com.jfrog.artifactory') && plugins.hasPlugin('maven-publish')) {
-                artifactory {
-                    contextUrl = "${artifactory_contextUrl}"
-                    publish {
-                        repository {
-                            repoKey = "libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
-                            username = artifactory_user
-                            password = artifactory_password
-                        }
-                        defaults {
-                            publications('mavenJava')
-                            publishIvy = false
-                        }
-                    }
+            // Configure standard signing.
+            if (plugins.hasPlugin('signing')) {
+                signing {
+                    useGpgCmd()
+                    required = !version.endsWith("SNAPSHOT") && gradle.taskGraph.hasTask("publish")
+                    sign(publishing.publications)
+                }
+            }
+
+            // Configure standard publication.
+            if (plugins.hasPlugin('cn.lalaki.central')) {
+                centralPortalPlus {
+                    url = publishing.repositories.maven.url
+
+                    // Configure user token.
+                    username = findProperty("sonatypeUser")
+                    password = findProperty("sonatypePassword")
+                    publishingType = 'USER_MANAGED'
                 }
             }
         }
